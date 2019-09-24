@@ -136,9 +136,25 @@ You can also embed plots, for example:
 ```{r pressure, echo=FALSE}
 # read in a dataset with all its tables
 
-setwd("~/Dropbox/b0nd")
+setwd("~/Dropbox/dissertation_data_analysis/")
 
-id_data_table = read.csv()
+ id_data_table           = read.csv("QECH_tables/qech_query_1.csv")
+ address_data_table      = read.csv("QECH_tables/qech_query_2.csv")
+ patient_care_data_table = read.csv("QECH_tables/qech_query_3.csv")
+ viral_load_data_table   = read.csv("QECH_tables/qech_query_4.csv")
+
+ 
+ 
+ #Analyze the addresses as the field used for following up patients. Check the total number of patients that have been registered at each facility. Modification is that patient identifier no longer checked because HTS is not part of the available EMRs. Therefore check for total number of patients per site, then assess completeness of physical address as a set of "TA, district and village (current place of residence)"
+ #
+ # denominator value
+ total_number_of_patients = n_distinct(id_data_table$patient_id)
+ 
+#patients with complete physical addresses. We define complete village as all addresses that have got the smallest unit of address which represents the current place of residence. Residents without current place of residence cannot be followed up if they miss an appointment. 
+
+ complete_physical_address = id_data_table %>% select(district,ta,village)
+ 
+ 
 
 
 plot(pressure)
