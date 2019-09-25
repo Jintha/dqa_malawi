@@ -134,7 +134,8 @@ Plausibility: This is the believability or truthfulness of observed data values,
 You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
-# read in a dataset with all its tables
+# read in a dataset with all its tables: 
+# test code
 
  setwd("~/Dropbox/dissertation_data_analysis/")
 
