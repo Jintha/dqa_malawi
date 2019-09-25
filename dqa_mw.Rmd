@@ -138,7 +138,7 @@ You can also embed plots, for example:
 
  setwd("~/Dropbox/dissertation_data_analysis/")
 
- id_data_table           = read.csv("QECH_tables/qech_query_1.csv")
+ id_data_table           = read.csv("QECH_tables/qech_query_1.csv", stringsAsFactors = FALSE)
  address_data_table      = read.csv("QECH_tables/qech_query_2.csv")
  patient_care_data_table = read.csv("QECH_tables/qech_query_3.csv")
  viral_load_data_table   = read.csv("QECH_tables/qech_query_4.csv")
@@ -157,8 +157,11 @@ You can also embed plots, for example:
  complete_physical_address = id_data_table %>% select(district,ta,village) 
  complete_physical_address$village_status = complete_physical_address$village
  
- # want to tabulate this but resolving to numerical values
- complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "Null"), "Not entered",complete_physical_address$village_status)
+ # want to tabulate this but factors resolving to numerical values because they are in a sense numerical values.
+ # changed them to character and will change the field back to factors and then tabulate this field.
+complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "NULL"), "Not entered",complete_physical_address$village_status)
+ complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "Other"), "Entered Other",complete_physical_address$village_status)
+complete_physical_address$village_status = ifelse((complete_physical_address$village_status != "NULL"& complete_physical_address$village_status != "Other" & complete_physical_address$village_status != "Entered Other"& complete_physical_address$village_status != "Not entered" ), "Village Entered",complete_physical_address$village_status)
 
 
 
