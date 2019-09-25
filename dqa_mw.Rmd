@@ -136,7 +136,7 @@ You can also embed plots, for example:
 ```{r pressure, echo=FALSE}
 # read in a dataset with all its tables: 
 # test code
-
+ library("tidyverse")
  setwd("~/Dropbox/dissertation_data_analysis/")
 
  id_data_table           = read.csv("QECH_tables/qech_query_1.csv", stringsAsFactors = FALSE)
@@ -162,8 +162,13 @@ You can also embed plots, for example:
  # changed them to character and will change the field back to factors and then tabulate this field.
 complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "NULL"), "Not entered",complete_physical_address$village_status)
  complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "Other"), "Entered Other",complete_physical_address$village_status)
-complete_physical_address$village_status = ifelse((complete_physical_address$village_status != "NULL"& complete_physical_address$village_status != "Other" & complete_physical_address$village_status != "Entered Other"& complete_physical_address$village_status != "Not entered" ), "Village Entered",complete_physical_address$village_status)
 
+complete_physical_address$village_status = ifelse((complete_physical_address$village_status != "NULL"& complete_physical_address$village_status != "Other" & complete_physical_address$village_status != "Entered Other"& complete_physical_address$village_status != "Not entered" ), "Village Entered",complete_physical_address$village_status) 
+
+complete_physical_address$village_status = as.factor(complete_physical_address$village_status)
+
+# Make this a proportion and not a count.
+ggplot(complete_physical_address, aes(x=village_status)) + geom_bar()
 
 
 ```
