@@ -2,7 +2,9 @@
 title: "data_quality_assessment_malawi"
 author: "ojgadabu"
 date: "2/5/2019"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -157,9 +159,17 @@ You can also embed plots, for example:
  
  complete_physical_address = id_data_table %>% select(district,ta,village) 
  complete_physical_address$village_status = complete_physical_address$village
+ complete_physical_address$ta_status = complete_physical_address$ta
+ complete_physical_address$district_status = complete_physical_address$district
  
  # want to tabulate this but factors resolving to numerical values because they are in a sense numerical values.
  # changed them to character and will change the field back to factors and then tabulate this field.
+
+ #function group_address_units(address_unit){
+  # return address_unit
+  
+ #}
+ 
 complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "NULL"), "Not entered",complete_physical_address$village_status)
  complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "Other"), "Entered Other",complete_physical_address$village_status)
 
@@ -167,9 +177,30 @@ complete_physical_address$village_status = ifelse((complete_physical_address$vil
 
 complete_physical_address$village_status = as.factor(complete_physical_address$village_status)
 
-# Make this a proportion and not a count.
-ggplot(complete_physical_address, aes(x=village_status)) + geom_bar()
 
+# Group the TA as well
+complete_physical_address$ta_status = ifelse((complete_physical_address$ta_status == "NULL"), "Not entered",complete_physical_address$ta_status)
+ complete_physical_address$ta_status = ifelse((complete_physical_address$ta_status == "Other"), "Entered Other",complete_physical_address$ta_status)
+
+complete_physical_address$ta_status = ifelse((complete_physical_address$ta_status != "NULL"& complete_physical_address$ta_status != "Other" & complete_physical_address$ta_status != "Entered Other"& complete_physical_address$ta_status != "Not entered" ), "TA Entered",complete_physical_address$ta_status) 
+
+complete_physical_address$ta_status = as.factor(complete_physical_address$ta_status)
+
+
+# Group the district as well
+complete_physical_address$district_status = ifelse((complete_physical_address$district_status == "NULL"), "Not entered",complete_physical_address$district_status)
+ complete_physical_address$district_status = ifelse((complete_physical_address$district_status == "Other"), "Entered Other",complete_physical_address$district_status)
+
+complete_physical_address$district_status = ifelse((complete_physical_address$district_status != "NULL"& complete_physical_address$district_status != "Other" & complete_physical_address$district_status != "Entered Other"& complete_physical_address$district_status != "Not entered" ), "District Entered",complete_physical_address$district_status) 
+
+complete_physical_address$district_status = as.factor(complete_physical_address$district_status)
+
+
+# Make this a proportion and not a count.
+# Need to modify graph to plot the different sections of the address on one geom
+ggplot(complete_physical_address, aes(village_status)) + geom_bar()
+ggplot(complete_physical_address, aes(ta_status)) + geom_bar()
+ggplot(complete_physical_address, aes(district_status)) + geom_bar()
 
 ```
 
