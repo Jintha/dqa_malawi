@@ -7,201 +7,67 @@ output:
   html_document: default
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r global_options, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 8,
+                      warning = FALSE, message = FALSE)
+library(biotools)
+library(psych)
+library(QuantPsyc)
+library(pastecs)
+library(corrgram)
+library(gplots)
+library(cluster)
+library(tidyverse)
+library(pwr)
+library(xtable)
+library(stargazer)
+library(knitr)
+library(sjPlot)
+library(plyr)
+library(sjmisc)
+library(Hmisc)
+library(MBESS)
+library(apaTables)
+library(rockchalk)
+library(gmodels)
+library(car)
 ```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r}
-#Define queries for extracting different data sets
-#Start with unique patient identifiers for patients for a site
-# Will use user stories to define the datasets required as below:
-# Unique patient identifier user story
-# 
-# As a patient enrolled in care
-# I want to receive a unique patient identifier
-# So that I can access services in the ART clinic
-# 
-# Confirmations
-# all patients with an internal patient id
-# date that the patient was registered
-# date that the encounter was created
-# the identifier type of unique patient ide
-# the patient identifier
-# 
-# patient address current place of residence
-# 
-# As a patient enrolled in care
-# I need to have a current place of residence
-# So that I can be contacted and retained in care
-# 
-# Confirmations
-# should have internal patient id
-# should have identifier type
-# should have the date the identifier was created
-# should have the date the encounter was observed
-# should have the current place of residence
-# should be an active place of residence 
-# 
-# patient address phone number
-# 
-# As a patient enrolled in care
-# I need to have a phone number so that
-# I may be reached when I need to remain in care
-#
-#Confirmations
-# should have internal patient id
-# should have identifier type
-# should have the date the identifier was created
-# should have the date the encounter was observed
-# should have the contact phone number
-# should be an active phone number
-# 
-#As a patient enrolled in care 
-#I should have prescribed drugs at a patient visit
-#So that I should receive a drug dispensation
-#
-#Confirmations
-#Should have internal patient id
-#Should have prescription encounter
-#Should have name of prescribed drug
-#Should have the date the prescription was done
-#Should have the date the prescription was created
-#
-#
-# As a patient enrolled in care
-# I should receive a drug dispensation at my visit
-# so that I have meds to take 
-# 
-# Confirmations
-#Should have internal patient id
-#Should have dispensation encounter
-#Should have name of dispensed drug
-#Should have the date the dispensation was done
-#Should have the date the dispensation was created
-# 
-# 
-# As a patient accessing care 
-# I should have a weight value at each visit
-# So that my BMI may be monitored
-# 
-# Confirmations
-# Should have the internal patient id
-# Should have the weights of the patient between study period
-# should have the dates the weights were observed
-# should have the dates the weights were created
-# 
-# 
-# body mass index - height
-# As a patient accessing care
-# I should have my height measured at every visit
-# So that my growth ratios may be calculated
-# 
-# confirmations
-# Should have the internal patient id
-# Should have the weights of the patient between study period
-# should have the dates the heights were observed
-# should have the dates the heights were created
-# 
-# 
-# 
-# viral load monitoring - viral load results
-# As a patient accessing care
-# I should have my viral load measured within 6 months of being enrolled in care
-# So that I may gain viral load 
-# suppression
-# 
-# confirmations
-# Should have the internal patient id
-# Should have the viral load results of the patient between study period
-# should have the dates the viral load results were observed
-# should have the dates the viral load results were created
-# 
-# 
-# 
-# 
-```
-
 ## Starting data quality assessment using the kahn framework with the data quality attributes of:
 
 Completeness: Presence of data for an observation regardless of the structure or value of the data. For VL could be -100 or 700 or 200,000.
 Conformance: Adherence of data to a predefined format or structure of the data. This could be domain of values, for example, VL not having a value of -20 which would be outside the domain of defined values.
 Plausibility: This is the believability or truthfulness of observed data values, for example a patient with two viral load observations of 5000 and 700 within a space of a month. 
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
+
+```{r echo=FALSE}
 # read in a dataset with all its tables: 
 # test code
- library("tidyverse")
+ 
  setwd("~/Dropbox/dissertation_data_analysis/")
 
  id_data_table           = read.csv("QECH_tables/qech_query_1.csv", stringsAsFactors = FALSE)
- address_data_table      = read.csv("QECH_tables/qech_query_2.csv")
- patient_care_data_table = read.csv("QECH_tables/qech_query_3.csv")
+ drugs_data_table      = read.csv("QECH_tables/qech_query_2.csv", stringsAsFactors = FALSE)
+ bmi_data_table = read.csv("QECH_tables/qech_query_3.csv")
  viral_load_data_table   = read.csv("QECH_tables/qech_query_4.csv")
 
+ cd = gather(id_data_table,"address_section","address_value",2:4) 
  
+# cd$address_value = ifelse(cd$address_value == "Other"), "Other", cd$address_value))
+
+ cd$address_value = ifelse((cd$address_value == "Other"), "Documented Other",cd$address_value)
+ cd$address_value = ifelse((cd$address_value == "NULL"), "Not documented",cd$address_value)
+ cd$address_value = ifelse((cd$address_value != "Documented Other" &  cd$address_value != "Not documented" ), "Address Unit Documented", cd$address_value) 
  
- #Analyze the addresses as the field used for following up patients. Check the total number of patients that have been registered at each facility. Modification is that patient identifier no longer checked because HTS is not part of the available EMRs. Therefore check for total number of patients per site, then assess completeness of physical address as a set of "TA, district and village (current place of residence)"
- #
- # denominator value
- total_number_of_patients = n_distinct(id_data_table$patient_id)
+ cd$address_section = as.factor(cd$address_section)
+ cd$address_value = as.factor(cd$address_value)
  
-#patients with complete physical addresses. We define complete village as all addresses that have got the smallest unit of address which represents the current place of residence. Residents without current place of residence cannot be followed up if they miss an appointment. 
+ #Analyze the addresses as the field used for following up patients. Check the total number of patients that have been registered at each facility. Modification is that patient identifier no longer checked because HIV Testing Services (HTS) is not part of the available EMRs. Therefore check for total number of patients per site, then assess completeness of physical address as a set of "TA, district and village (current place of residence)"
+#Patients with complete physical addresses. We define complete village as all addresses that have got the smallest unit of address which represents the current place of residence. Residents without current place of residence cannot be followed up if they miss an appointment. This is a threat to the second 90 of patient retention. 
 
- #complete_physical_address = id_data_table %>% select(district,ta,village) %>% filter(village != "Null", village != "Other")
  
- complete_physical_address = id_data_table %>% select(district,ta,village) 
- complete_physical_address$village_status = complete_physical_address$village
- complete_physical_address$ta_status = complete_physical_address$ta
- complete_physical_address$district_status = complete_physical_address$district
- 
- # want to tabulate this but factors resolving to numerical values because they are in a sense numerical values.
- # changed them to character and will change the field back to factors and then tabulate this field.
-
- #function group_address_units(address_unit){
-  # return address_unit
-  
- #}
- 
-complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "NULL"), "Not entered",complete_physical_address$village_status)
- complete_physical_address$village_status = ifelse((complete_physical_address$village_status == "Other"), "Entered Other",complete_physical_address$village_status)
-
-complete_physical_address$village_status = ifelse((complete_physical_address$village_status != "NULL"& complete_physical_address$village_status != "Other" & complete_physical_address$village_status != "Entered Other"& complete_physical_address$village_status != "Not entered" ), "Village Entered",complete_physical_address$village_status) 
-
-complete_physical_address$village_status = as.factor(complete_physical_address$village_status)
-
-
-# Group the TA as well
-complete_physical_address$ta_status = ifelse((complete_physical_address$ta_status == "NULL"), "Not entered",complete_physical_address$ta_status)
- complete_physical_address$ta_status = ifelse((complete_physical_address$ta_status == "Other"), "Entered Other",complete_physical_address$ta_status)
-
-complete_physical_address$ta_status = ifelse((complete_physical_address$ta_status != "NULL"& complete_physical_address$ta_status != "Other" & complete_physical_address$ta_status != "Entered Other"& complete_physical_address$ta_status != "Not entered" ), "TA Entered",complete_physical_address$ta_status) 
-
-complete_physical_address$ta_status = as.factor(complete_physical_address$ta_status)
-
-
-# Group the district as well
-complete_physical_address$district_status = ifelse((complete_physical_address$district_status == "NULL"), "Not entered",complete_physical_address$district_status)
- complete_physical_address$district_status = ifelse((complete_physical_address$district_status == "Other"), "Entered Other",complete_physical_address$district_status)
-
-complete_physical_address$district_status = ifelse((complete_physical_address$district_status != "NULL"& complete_physical_address$district_status != "Other" & complete_physical_address$district_status != "Entered Other"& complete_physical_address$district_status != "Not entered" ), "District Entered",complete_physical_address$district_status) 
-
-complete_physical_address$district_status = as.factor(complete_physical_address$district_status)
-
-
-# Make this a proportion and not a count.
-# Need to modify graph to plot the different sections of the address on one geom
-ggplot(complete_physical_address, aes(village_status)) + geom_bar()
-ggplot(complete_physical_address, aes(ta_status)) + geom_bar()
-ggplot(complete_physical_address, aes(district_status)) + geom_bar()
-
+ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
+                                                         
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
