@@ -48,8 +48,8 @@ Plausibility: This is the believability or truthfulness of observed data values,
 
  id_data_table           = read.csv("QECH_tables/qech_query_1.csv", stringsAsFactors = FALSE)
  drugs_data_table      = read.csv("QECH_tables/qech_query_2.csv", stringsAsFactors = FALSE)
- bmi_data_table = read.csv("QECH_tables/qech_query_3.csv")
- viral_load_data_table   = read.csv("QECH_tables/qech_query_4.csv")
+ bmi_data_table = read.csv("QECH_tables/qech_query_3.csv", stringsAsFactors = FALSE)
+ viral_load_data_table   = read.csv("QECH_tables/qech_query_4.csv", stringsAsFactors = FALSE)
 
  cd = gather(id_data_table,"address_section","address_value",2:4) 
  
