@@ -67,7 +67,39 @@ Plausibility: This is the believability or truthfulness of observed data values,
 
  
 ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
-                                                         
+
+# count encounter dates and number of patient observed weight values for each date.
+
+  bmi_data_table = mutate(bmi_data_table, new_encounter_date  =  as.Date(bmi_data_table$encounter_datetime, "%Y-%m-%d %T"))
+
+  bmi_data_table$height = as.integer(bmi_data_table$height)
+  bmi_data_table$weight = as.integer(bmi_data_table$weight)
+  bmi_data_table$patient_id = as.integer(bmi_data_table$patient_id)
+# Total number of patient encounter dates.
+# Total number of weight observations
+  
+  number_of_weights_documented = bmi_data_table %>% filter(weight > 0) %>% nrow(.)
+  number_of_heights_documented = bmi_data_table %>% filter(height > 0) %>% nrow(.)
+  number_of_encounter_dates = bmi_data_table %>% filter(!is.na(new_encounter_date)) %>% nrow(.)
+  
+#plot number of encounters per day for each patient
+#create a dataframe that has month name and number of encounters in that month
+#then add to that dataframe number of weight and height observations per month
+#After that then plot the graphs on one layer with different types of observations
+#Should result in 3 line geoms. Expectation is that weight should be at each visit.
+
+  ggplot(bmi_data_table, aes(x = new_encounter_date, y = weight)) + geom_line()
+
+  
+  
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+
+
+
+
