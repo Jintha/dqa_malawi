@@ -88,13 +88,14 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
 #After that then plot the graphs on one layer with different types of observations
 #Should result in 3 line geoms. Expectation is that weight should be at each visit.
 
-  ggplot(bmi_data_table, aes(x = new_encounter_date, y = weight)) + geom_line()
+  ggplot(bmi_data_table, aes(x = new_encounter_date)) + geom_line(aes(y = weight)) + geom_line(aes(y = height))
 
   
   
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
 
 
 
