@@ -3,6 +3,7 @@ title: "data_quality_assessment_malawi"
 author: "ojgadabu"
 date: "2/5/2019"
 output:
+  word_document: default
   pdf_document: default
   html_document: default
 ---
@@ -31,7 +32,7 @@ library(apaTables)
 library(rockchalk)
 library(gmodels)
 library(car)
-```
+library(lubridate)```
 ## Starting data quality assessment using the kahn framework with the data quality attributes of:
 
 Completeness: Presence of data for an observation regardless of the structure or value of the data. For VL could be -100 or 700 or 200,000.
@@ -59,6 +60,7 @@ Plausibility: This is the believability or truthfulness of observed data values,
  cd$address_value = ifelse((cd$address_value == "NULL"), "Not documented",cd$address_value)
  cd$address_value = ifelse((cd$address_value != "Documented Other" &  cd$address_value != "Not documented" ), "Address Unit Documented", cd$address_value) 
  
+ 
  cd$address_section = as.factor(cd$address_section)
  cd$address_value = as.factor(cd$address_value)
  
@@ -78,9 +80,13 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
 # Total number of patient encounter dates.
 # Total number of weight observations
   
-  number_of_weights_documented = bmi_data_table %>% filter(weight > 0) %>% nrow(.)
-  number_of_heights_documented = bmi_data_table %>% filter(height > 0) %>% nrow(.)
-  number_of_encounter_dates = bmi_data_table %>% filter(!is.na(new_encounter_date)) %>% nrow(.)
+  
+  by_month_all_encounters = bmi_data_table %>% group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count = n())
+  
+  by_month_weights_documented = bmi_data_table %>%filter(weight > 0) %>%  group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_weights = n())
+  
+  by_month_heights_documented = bmi_data_table %>% filter(height > 0) %>%  group_by(yr =year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_heights = n())
+  
   
 #plot number of encounters per day for each patient
 #create a dataframe that has month name and number of encounters in that month
@@ -88,8 +94,12 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
 #After that then plot the graphs on one layer with different types of observations
 #Should result in 3 line geoms. Expectation is that weight should be at each visit.
 
-  ggplot(bmi_data_table, aes(x = new_encounter_date)) + geom_line(aes(y = weight)) + geom_line(aes(y = height))
+  combined_observations  = cbind(by_month_all_encounters,by_month_weights_documented) %>% cbind(.,by_month_heights_documented) %>% select(yr,mn,count,count_heights,count_weights)
+  
+  
+  #ggplot(bmi_data_table, aes(x = new_encounter_date)) + geom_freqpoly(binwidth=1)
 
+  
   
   
 ```
