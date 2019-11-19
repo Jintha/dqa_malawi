@@ -32,7 +32,8 @@ library(apaTables)
 library(rockchalk)
 library(gmodels)
 library(car)
-library(lubridate)```
+library(lubridate)
+```
 ## Starting data quality assessment using the kahn framework with the data quality attributes of:
 
 Completeness: Presence of data for an observation regardless of the structure or value of the data. For VL could be -100 or 700 or 200,000.
@@ -47,18 +48,80 @@ Plausibility: This is the believability or truthfulness of observed data values,
  
  setwd("~/Dropbox/dissertation_data_analysis/")
 
- id_data_table           = read.csv("QECH_tables/qech_query_1.csv", stringsAsFactors = FALSE)
- drugs_data_table      = read.csv("QECH_tables/qech_query_2.csv", stringsAsFactors = FALSE)
- bmi_data_table = read.csv("QECH_tables/qech_query_3.csv", stringsAsFactors = FALSE)
- viral_load_data_table   = read.csv("QECH_tables/qech_query_4.csv", stringsAsFactors = FALSE)
+#QECH dataset
+ id_data_table_qech           = read.csv("QECH_tables/qech_query_1.csv", stringsAsFactors = FALSE)
+ drugs_data_table_qech        = read.csv("QECH_tables/qech_query_2.csv", stringsAsFactors = FALSE)
+ bmi_data_table_qech   = read.csv("QECH_tables/qech_query_3.csv", stringsAsFactors = FALSE)
+ adherence_data_table_qech     = read.csv("QECH_tables/qech_query_4.csv", stringsAsFactors = FALSE)
 
- cd = gather(id_data_table,"address_section","address_value",2:4) 
+ 
+#Kawale dataset
+ #id_data_table_kawale           = read.csv("age_modified_kawale/kawale_query_1.csv", stringsAsFactors = FALSE)
+ #drugs_data_table_kawale      = read.csv("age_modified_kawale/kawale_query_2.csv", stringsAsFactors = FALSE)
+ #bmi_data_table_kawale = read.csv("age_modified_kawale/kawale_query_3.csv", stringsAsFactors = FALSE)
+ #adherence_data_table_kawale   = read.csv("QECH_tables/qech_query_4.csv", stringsAsFactors = FALSE)
+ 
+ #Completeness Proportions
+ #Patient tracking variables
+ 
+ id_data_table_qech$complete_address = ifelse(id_data_table_qech$district !="NULL" & id_data_table_qech$ta != "NULL" &     id_data_table_qech$village != "NULL", "Complete","Incomplete")
+ 
+ 
+ 
+ total_number_of_patients = id_data_table_qech %>% nrow()
+ number_of_incomplete_addresses = id_data_table_qech %>% filter(complete_address =="Incomplete") %>% nrow()
+ address_completeness_proportion = number_of_incomplete_addresses/total_number_of_patients*100
+ address_completeness_proportion
+ 
+ id_data_table_qech$phone_number = ifelse(id_data_table_qech$cell_number !="NULL" & (id_data_table_qech$cell_number != "Unknown" |   id_data_table_qech$cell_number != "N/A"), "Complete","Incomplete")
+ number_of_incomplete_phone_numbers = id_data_table_qech %>% filter(phone_number =="Incomplete") %>% nrow()
+ phone_number_proportion = number_of_incomplete_phone_numbers/total_number_of_patients*100
+ phone_number_proportion
+
+ #completeness
+ #Patient retention and health tracking
+ #Denominator is all patient visits during the study period (January 2017 to December 2018). At minimum, each patient should have their vital signs measured when they visit the clinic. Therefore the denominator will be the number of encounters in the weight table.
+ #BMI
+ total_number_of_patient_visits = bmi_data_table_qech %>% nrow()
+ number_of_incomplete_weight_observations = bmi_data_table_qech %>% filter(weight == "NULL") %>% nrow()
+ proportion_incomplete_weight_documentation = number_of_incomplete_weight_observations/total_number_of_patient_visits * 100
+ proportion_incomplete_weight_documentation
+  
+ 
+ #Prescription
+ #Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denominator where the expectation is a single value for each day.
+ 
+ total_number_of_prescriptions = drugs_data_table_qech %>% nrow()
+ #Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
+ 
+ number_of_complete_prescriptions = drugs_data_table %>% filter(quantity != "NULL") %>% nrow() # NULL records indicate that the prescription was not filled. We take only complete prescriptions here.
+ prescription_completeness_proportion = number_of_complete_prescriptions / total_number_of_prescriptions * 100
+ prescription_completeness_proportion
+ 
+ #Adherence
+ 
+ #
+ 
+ 
+ #Viral load
+ #total number of patients that have been registered since the begining of the clinic to 6 months before the end of the study period
+ #number of patients with a viral load reading documented in this period.
+ 
+ viral_load_data_table_lh = read.csv("age_modified_kawale/LH_VL_results.csv", stringsAsFactors = FALSE)
+ 
+ total_number_of_patients_lh = viral_load_data_table_lh %>% select(patient_id) %>% unique() %>% nrow()
+ 
+ number_of_complete_viral_loads = viral_load_data_table_lh %>% filter(patient_VL_results != "") %>% nrow()
+ 
+ proportion_of_complete_vl_lh = number_of_complete_viral_loads/total_number_of_patients 
+ 
+ cd = gather(id_data_table_qech,"address_section","address_value",2:4) 
  
 # cd$address_value = ifelse(cd$address_value == "Other"), "Other", cd$address_value))
 
  cd$address_value = ifelse((cd$address_value == "Other"), "Documented Other",cd$address_value)
  cd$address_value = ifelse((cd$address_value == "NULL"), "Not documented",cd$address_value)
- cd$address_value = ifelse((cd$address_value != "Documented Other" &  cd$address_value != "Not documented" ), "Address Unit Documented", cd$address_value) 
+ cd$address_value = ifelse((cd$address_value != "Documented Other" &  cd$address_value != "Not documented" ), "Address Unit Documented",      cd$address_value) 
  
  
  cd$address_section = as.factor(cd$address_section)
@@ -89,12 +152,15 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
   
   
 #plot number of encounters per day for each patient
+#denominator for weight is all encounters. denominator for heights is the number of unique patients. Since an adult should have at least a single height.
 #create a dataframe that has month name and number of encounters in that month
 #then add to that dataframe number of weight and height observations per month
 #After that then plot the graphs on one layer with different types of observations
 #Should result in 3 line geoms. Expectation is that weight should be at each visit.
 
   combined_observations  = cbind(by_month_all_encounters,by_month_weights_documented) %>% cbind(.,by_month_heights_documented) %>% select(yr,mn,count,count_heights,count_weights)
+  
+  ggplot(combined_observations) + geom_line(aes(mn,count), size=1, color = "yellow") + geom_line(aes(mn,count_weights), size = 1, color = "blue")
   
   
   #ggplot(bmi_data_table, aes(x = new_encounter_date)) + geom_freqpoly(binwidth=1)
