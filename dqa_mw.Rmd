@@ -11,11 +11,6 @@ output:
 ```{r global_options, setup, include=FALSE}
 knitr::opts_chunk$set(fig.width = 8, fig.height = 8,
                       warning = FALSE, message = FALSE)
-library(biotools)
-library(psych)
-library(QuantPsyc)
-library(pastecs)
-library(corrgram)
 library(gplots)
 library(cluster)
 library(tidyverse)
@@ -23,16 +18,8 @@ library(pwr)
 library(xtable)
 library(stargazer)
 library(knitr)
-library(sjPlot)
-library(plyr)
-library(sjmisc)
-library(Hmisc)
-library(MBESS)
-library(apaTables)
-library(rockchalk)
-library(gmodels)
-library(car)
 library(lubridate)
+library(RMySQL)
 ```
 ## Starting data quality assessment using the kahn framework with the data quality attributes of:
 
@@ -45,8 +32,13 @@ Plausibility: This is the believability or truthfulness of observed data values,
 ```{r echo=FALSE}
 # read in a dataset with all its tables: 
 # test code
+#connect to local database to fetch validation tables for plausibility queries
+
+ mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
  
  setwd("~/Dropbox/dissertation_data_analysis/")
+
+
 
 #QECH dataset
  id_data_table_qech           = read.csv("QECH_tables/qech_query_1.csv", stringsAsFactors = FALSE)
@@ -55,7 +47,7 @@ Plausibility: This is the believability or truthfulness of observed data values,
  adherence_data_table_qech     = read.csv("QECH_tables/qech_query_4.csv", stringsAsFactors = FALSE)
 
  
-#Kawale dataset
+ #Kawale dataset
  #id_data_table_kawale           = read.csv("age_modified_kawale/kawale_query_1.csv", stringsAsFactors = FALSE)
  #drugs_data_table_kawale      = read.csv("age_modified_kawale/kawale_query_2.csv", stringsAsFactors = FALSE)
  #bmi_data_table_kawale = read.csv("age_modified_kawale/kawale_query_3.csv", stringsAsFactors = FALSE)
@@ -66,16 +58,16 @@ Plausibility: This is the believability or truthfulness of observed data values,
  
  id_data_table_qech$complete_address = ifelse(id_data_table_qech$district !="NULL" & id_data_table_qech$ta != "NULL" &     id_data_table_qech$village != "NULL", "Complete","Incomplete")
  
- 
+
  
  total_number_of_patients = id_data_table_qech %>% nrow()
- number_of_incomplete_addresses = id_data_table_qech %>% filter(complete_address =="Incomplete") %>% nrow()
- address_completeness_proportion = number_of_incomplete_addresses/total_number_of_patients*100
+ number_of_complete_addresses = id_data_table_qech %>% filter(complete_address =="Complete") %>% nrow()
+ address_completeness_proportion = number_of_complete_addresses/total_number_of_patients*100
  address_completeness_proportion
  
  id_data_table_qech$phone_number = ifelse(id_data_table_qech$cell_number !="NULL" & (id_data_table_qech$cell_number != "Unknown" |   id_data_table_qech$cell_number != "N/A"), "Complete","Incomplete")
- number_of_incomplete_phone_numbers = id_data_table_qech %>% filter(phone_number =="Incomplete") %>% nrow()
- phone_number_proportion = number_of_incomplete_phone_numbers/total_number_of_patients*100
+ number_of_complete_phone_numbers = id_data_table_qech %>% filter(phone_number =="Complete") %>% nrow()
+ phone_number_proportion = number_of_complete_phone_numbers/total_number_of_patients*100
  phone_number_proportion
 
  #completeness
@@ -83,13 +75,13 @@ Plausibility: This is the believability or truthfulness of observed data values,
  #Denominator is all patient visits during the study period (January 2017 to December 2018). At minimum, each patient should have their vital signs measured when they visit the clinic. Therefore the denominator will be the number of encounters in the weight table.
  #BMI
  total_number_of_patient_visits = bmi_data_table_qech %>% nrow()
- number_of_incomplete_weight_observations = bmi_data_table_qech %>% filter(weight == "NULL") %>% nrow()
- proportion_incomplete_weight_documentation = number_of_incomplete_weight_observations/total_number_of_patient_visits * 100
- proportion_incomplete_weight_documentation
+ number_of_complete_weight_observations = bmi_data_table_qech %>% filter(weight != "NULL") %>% nrow()
+ proportion_complete_weight_documentation = number_of_complete_weight_observations/total_number_of_patient_visits * 100
+ proportion_complete_weight_documentation
   
  
  #Prescription
- #Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denominator where the expectation is a single value for each day.
+ #Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denomina"tor where the expectation is a single value for each day.
  
  total_number_of_prescriptions = drugs_data_table_qech %>% nrow()
  #Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
@@ -111,19 +103,36 @@ Plausibility: This is the believability or truthfulness of observed data values,
  
  total_number_of_patients_lh = viral_load_data_table_lh %>% select(patient_id) %>% unique() %>% nrow()
  
- number_of_complete_viral_loads = viral_load_data_table_lh %>% filter(patient_VL_results != "") %>% nrow()
+ number_of_complete_viral_loads = viral_load_data_table_lh %>% filter(patient_VL_results != "") %>% select(patient_id) %>% unique %>% nrow()
  
- proportion_of_complete_vl_lh = number_of_complete_viral_loads/total_number_of_patients 
+ proportion_of_complete_vl_lh = number_of_complete_viral_loads/total_number_of_patients_lh * 100
  
- cd = gather(id_data_table_qech,"address_section","address_value",2:4) 
+ 
+ 
+ 
+ #Build the completeness data tables
+ Variable_Names = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescription Made","Drug Adherence")
+ 
+ Numerators = c(number_of_complete_addresses,number_of_complete_phone_numbers,number_of_complete_weight_observations,number_of_complete_viral_loads,number_of_complete_prescriptions,"number_of_complete_adherence")
+ 
+ Denominators = c(total_number_of_patients,total_number_of_patients,total_number_of_patient_visits,total_number_of_patients_lh,total_number_of_prescriptions,"total_number_of_patient_visits")
+ 
+ Completeness_Proportions = c(address_completeness_proportion,phone_number_proportion,proportion_complete_weight_documentation,proportion_of_complete_vl_lh,prescription_completeness_proportion,"adherence")
+ 
+ completeness_table = data.frame(Variable_Names,Numerators,Denominators,Proportions)
+ 
+ 
  
 # cd$address_value = ifelse(cd$address_value == "Other"), "Other", cd$address_value))
 
+ #What is the completeness of individual sections of patient address since it is divided into 3 parts. 
+ 
+ cd = gather(id_data_table_qech,"address_section","address_value",2:4) 
+ 
  cd$address_value = ifelse((cd$address_value == "Other"), "Documented Other",cd$address_value)
  cd$address_value = ifelse((cd$address_value == "NULL"), "Not documented",cd$address_value)
  cd$address_value = ifelse((cd$address_value != "Documented Other" &  cd$address_value != "Not documented" ), "Address Unit Documented",      cd$address_value) 
- 
- 
+
  cd$address_section = as.factor(cd$address_section)
  cd$address_value = as.factor(cd$address_value)
  
@@ -133,6 +142,7 @@ Plausibility: This is the believability or truthfulness of observed data values,
  
 ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
 
+# Are all visits captured in the EMR data or there are some dates where there are very low number of visits?
 # count encounter dates and number of patient observed weight values for each date.
 
   bmi_data_table = mutate(bmi_data_table, new_encounter_date  =  as.Date(bmi_data_table$encounter_datetime, "%Y-%m-%d %T"))
@@ -167,6 +177,33 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
 
   
   
+  
+  
+  #Plausibility. Are the data that have been built believable? Are they accurate
+  
+  #Patientaddress Plausibility.
+  #Denominator will be the number of complete patient addresses.
+  #Numerator, will be the number of addresses that fall within accepted addresses.
+  mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
+  
+  rs1 = dbSendQuery(mydb, "select * from village")
+  all_villages <- fetch(rs1)
+  dbClearResult(rs1)
+  dbDisconnect(mydb)
+  
+  mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
+  rs2= dbSendQuery(mydb, "select * from traditional_authority")
+  all_traditional_authorities = fetch(rs2)
+  dbClearResult(rs2)
+  dbDisconnect(mydb)
+  
+  mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
+  rs3 = dbSendQuery(mydb, "select * from district")
+  all_districts = fetch(rs3)
+  dbClearResult(rs3)
+  dbDisconnect(mydb)
+  
+  complete_address
   
 ```
 
