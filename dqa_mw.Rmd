@@ -20,6 +20,7 @@ library(stargazer)
 library(knitr)
 library(lubridate)
 library(RMySQL)
+library(stringr)
 ```
 ## Starting data quality assessment using the kahn framework with the data quality attributes of:
 
@@ -204,6 +205,36 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
   dbDisconnect(mydb)
   
   complete_address
+  
+  #regular expression pattern for phone numbers. Filter those that are non numeric and are more than or less than 10 digits. 
+  id_data_table_qech$plausible_phone_number = ifelse(str_length(id_data_table_qech$cell_number) == 10, "Plausible","Not Plausible")
+  number_of_plausible_numbers = id_data_table_qech %>% filter(plausible_phone_number == "Plausible") %>% nrow()
+  proportion_plausible_numbers = number_of_plausible_numbers/number_of_complete_phone_numbers*100
+  
+  
+  #Atemporal Plausibility prescriptions
+  #Number of prescriptions matching dispensed medicines
+  #classify the prescriptions
+  
+  drugs_data_table_qech %>%
+  select(patient_id:quantity) %>%
+  mutate(
+    type = case_when(
+      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
+      name == "TDF/3TC/EFV (300/300/600mg tablet)" ~ "5A",
+      name == "TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet)" ~ "6A",
+      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
+      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
+      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
+      TRUE                      ~  "other"
+    )
+  )
+  
+  
+  #Plausible Viral load
+  
+  
+  
   
 ```
 
