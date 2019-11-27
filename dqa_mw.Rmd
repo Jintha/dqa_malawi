@@ -223,9 +223,9 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
       name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
       name == "TDF/3TC/EFV (300/300/600mg tablet)" ~ "5A",
       name == "TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet)" ~ "6A",
-      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
-      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
-      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
+      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "7A",
+      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "8A",
+      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "9A",
       TRUE                      ~  "other"
     )
   )
