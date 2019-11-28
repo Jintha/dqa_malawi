@@ -3,9 +3,9 @@ title: "data_quality_assessment_malawi"
 author: "ojgadabu"
 date: "2/5/2019"
 output:
-  word_document: default
   pdf_document: default
   html_document: default
+  word_document: default
 ---
 
 ```{r global_options, setup, include=FALSE}
@@ -30,22 +30,25 @@ Plausibility: This is the believability or truthfulness of observed data values,
 
 
 
-```{r echo=FALSE}
+```{r manipulation, echo=FALSE, results='hide'}
+
+
 # read in a dataset with all its tables: 
 # test code
 #connect to local database to fetch validation tables for plausibility queries
 
- mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
+# mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
  
+#Or set this to whereever your R working directory is. The read commands for the datasets will read from your directory too.
  setwd("~/Dropbox/dissertation_data_analysis/")
 
 
 
 #QECH dataset
- id_data_table_qech           = read.csv("QECH_tables/qech_query_1.csv", stringsAsFactors = FALSE)
- drugs_data_table_qech        = read.csv("QECH_tables/qech_query_2.csv", stringsAsFactors = FALSE)
- bmi_data_table_qech   = read.csv("QECH_tables/qech_query_3.csv", stringsAsFactors = FALSE)
- adherence_data_table_qech     = read.csv("QECH_tables/qech_query_4.csv", stringsAsFactors = FALSE)
+ id_data_table_qech           = read.csv("age_modified_kawale/kawale_query_1.csv", stringsAsFactors = FALSE)
+ drugs_data_table_qech        = read.csv("age_modified_kawale/kawale_query_2.csv", stringsAsFactors = FALSE)
+ bmi_data_table_qech   = read.csv("age_modified_kawale/kawale_query_3.csv", stringsAsFactors = FALSE)
+ #adherence_data_table_qech     = read.csv("QECH_tables/qech_query_4.csv", stringsAsFactors = FALSE)
 
  
  #Kawale dataset
@@ -59,7 +62,6 @@ Plausibility: This is the believability or truthfulness of observed data values,
  
  id_data_table_qech$complete_address = ifelse(id_data_table_qech$district !="NULL" & id_data_table_qech$ta != "NULL" &     id_data_table_qech$village != "NULL", "Complete","Incomplete")
  
-
  
  total_number_of_patients = id_data_table_qech %>% nrow()
  number_of_complete_addresses = id_data_table_qech %>% filter(complete_address =="Complete") %>% nrow()
@@ -87,18 +89,18 @@ Plausibility: This is the believability or truthfulness of observed data values,
  total_number_of_prescriptions = drugs_data_table_qech %>% nrow()
  #Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
  
- number_of_complete_prescriptions = drugs_data_table %>% filter(quantity != "NULL") %>% nrow() # NULL records indicate that the prescription was not filled. We take only complete prescriptions here.
+ number_of_complete_prescriptions = drugs_data_table_qech %>% filter(quantity != "NULL") %>% nrow() # NULL records indicate that the prescription was not filled. We take only complete prescriptions here.
  prescription_completeness_proportion = number_of_complete_prescriptions / total_number_of_prescriptions * 100
  prescription_completeness_proportion
  
  #Adherence
- 
- #
+ #Revising the original tables here from source since they were corrupted.
  
  
  #Viral load
  #total number of patients that have been registered since the begining of the clinic to 6 months before the end of the study period
  #number of patients with a viral load reading documented in this period.
+ #The tables here from one clinic only. The others are being uploaded.
  
  viral_load_data_table_lh = read.csv("age_modified_kawale/LH_VL_results.csv", stringsAsFactors = FALSE)
  
@@ -109,24 +111,26 @@ Plausibility: This is the believability or truthfulness of observed data values,
  proportion_of_complete_vl_lh = number_of_complete_viral_loads/total_number_of_patients_lh * 100
  
  
- 
- 
  #Build the completeness data tables
  Variable_Names = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescription Made","Drug Adherence")
  
- Numerators = c(number_of_complete_addresses,number_of_complete_phone_numbers,number_of_complete_weight_observations,number_of_complete_viral_loads,number_of_complete_prescriptions,"number_of_complete_adherence")
+ Numerators = c(number_of_complete_addresses,number_of_complete_phone_numbers,number_of_complete_weight_observations,number_of_complete_viral_loads,number_of_complete_prescriptions,"0")
  
- Denominators = c(total_number_of_patients,total_number_of_patients,total_number_of_patient_visits,total_number_of_patients_lh,total_number_of_prescriptions,"total_number_of_patient_visits")
+ Denominators = c(total_number_of_patients,total_number_of_patients,total_number_of_patient_visits,total_number_of_patients_lh,total_number_of_prescriptions,"0")
  
- Completeness_Proportions = c(address_completeness_proportion,phone_number_proportion,proportion_complete_weight_documentation,proportion_of_complete_vl_lh,prescription_completeness_proportion,"adherence")
+ Proportions = c(address_completeness_proportion,phone_number_proportion,proportion_complete_weight_documentation,proportion_of_complete_vl_lh,prescription_completeness_proportion,"0")
  
- completeness_table = data.frame(Variable_Names,Numerators,Denominators,Proportions)
+ completeness_table = data.frame(Variable_Names,Numerators,Denominators,Proportions, stringsAsFactors = FALSE)
+ 
+ completeness_table$Numerators = as.numeric(completeness_table$Numerators)
+ completeness_table$Denominators = as.numeric(completeness_table$Denominators)
+ completeness_table$Proportions = as.numeric(completeness_table$Proportions)
  
  
  
 # cd$address_value = ifelse(cd$address_value == "Other"), "Other", cd$address_value))
 
- #What is the completeness of individual sections of patient address since it is divided into 3 parts. 
+ #What is the completeness of individual sections of patient address since it is divided into 3 parts.This is checking the denominators. 
  
  cd = gather(id_data_table_qech,"address_section","address_value",2:4) 
  
@@ -140,71 +144,92 @@ Plausibility: This is the believability or truthfulness of observed data values,
  #Analyze the addresses as the field used for following up patients. Check the total number of patients that have been registered at each facility. Modification is that patient identifier no longer checked because HIV Testing Services (HTS) is not part of the available EMRs. Therefore check for total number of patients per site, then assess completeness of physical address as a set of "TA, district and village (current place of residence)"
 #Patients with complete physical addresses. We define complete village as all addresses that have got the smallest unit of address which represents the current place of residence. Residents without current place of residence cannot be followed up if they miss an appointment. This is a threat to the second 90 of patient retention. 
 
+```
+
+### Results
+
+*Completeness Table
+
+*Graph checking the completeness of address components. A complete address should have all components. 
+
+
+
+
+```{r display_results, results='markup'}
+  kable(completeness_table, caption = "Completeness of Documented Patient Records at a Selected ART Clinic",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
  
-ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
+  ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
 
-# Are all visits captured in the EMR data or there are some dates where there are very low number of visits?
-# count encounter dates and number of patient observed weight values for each date.
 
-  bmi_data_table = mutate(bmi_data_table, new_encounter_date  =  as.Date(bmi_data_table$encounter_datetime, "%Y-%m-%d %T"))
 
-  bmi_data_table$height = as.integer(bmi_data_table$height)
-  bmi_data_table$weight = as.integer(bmi_data_table$weight)
-  bmi_data_table$patient_id = as.integer(bmi_data_table$patient_id)
-# Total number of patient encounter dates.
-# Total number of weight observations
-  
-  
-  by_month_all_encounters = bmi_data_table %>% group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count = n())
-  
-  by_month_weights_documented = bmi_data_table %>%filter(weight > 0) %>%  group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_weights = n())
-  
-  by_month_heights_documented = bmi_data_table %>% filter(height > 0) %>%  group_by(yr =year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_heights = n())
-  
-  
-#plot number of encounters per day for each patient
-#denominator for weight is all encounters. denominator for heights is the number of unique patients. Since an adult should have at least a single height.
-#create a dataframe that has month name and number of encounters in that month
-#then add to that dataframe number of weight and height observations per month
-#After that then plot the graphs on one layer with different types of observations
-#Should result in 3 line geoms. Expectation is that weight should be at each visit.
 
-  combined_observations  = cbind(by_month_all_encounters,by_month_weights_documented) %>% cbind(.,by_month_heights_documented) %>% select(yr,mn,count,count_heights,count_weights)
-  
-  ggplot(combined_observations) + geom_line(aes(mn,count), size=1, color = "yellow") + geom_line(aes(mn,count_weights), size = 1, color = "blue")
-  
-  
-  #ggplot(bmi_data_table, aes(x = new_encounter_date)) + geom_freqpoly(binwidth=1)
+```
 
   
+```{r, plausibility, echo=FALSE, results='hide',include=FALSE}  
   
   
-  
-  #Plausibility. Are the data that have been built believable? Are they accurate
+# # Are all visits captured in the EMR data or there are some dates where there are very low number of visits?
+# # count encounter dates and number of patient observed weight values for each date.
+# 
+#   bmi_data_table = mutate(bmi_data_table, new_encounter_date  =  as.Date(bmi_data_table$encounter_datetime, "%Y-%m-%d %T"))
+# 
+#   bmi_data_table$height = as.integer(bmi_data_table$height)
+#   bmi_data_table$weight = as.integer(bmi_data_table$weight)
+#   bmi_data_table$patient_id = as.integer(bmi_data_table$patient_id)
+# # Total number of patient encounter dates.
+# # Total number of weight observations
+#   
+#   
+#   by_month_all_encounters = bmi_data_table %>% group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count = n())
+#   
+#   by_month_weights_documented = bmi_data_table %>%filter(weight > 0) %>%  group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_weights = n())
+#   
+#   by_month_heights_documented = bmi_data_table %>% filter(height > 0) %>%  group_by(yr =year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_heights = n())
+#   
+#   
+# #plot number of encounters per day for each patient
+# #denominator for weight is all encounters. denominator for heights is the number of unique patients. Since an adult should have at least a single height.
+# #create a dataframe that has month name and number of encounters in that month
+# #then add to that dataframe number of weight and height observations per month
+# #After that then plot the graphs on one layer with different types of observations
+# #Should result in 3 line geoms. Expectation is that weight should be at each visit.
+# 
+#   combined_observations  = cbind(by_month_all_encounters,by_month_weights_documented) %>% cbind(.,by_month_heights_documented) %>% select(yr,mn,count,count_heights,count_weights)
+#   
+#   ggplot(combined_observations) + geom_line(aes(mn,count), size=1, color = "yellow") + geom_line(aes(mn,count_weights), size = 1, color = "blue")
+#   
+#   
+#   #ggplot(bmi_data_table, aes(x = new_encounter_date)) + geom_freqpoly(binwidth=1)
+
+
+
+
+  #Plausibility. Are the data that have been built believable? Are they accurate. We assess the complete data here.
   
   #Patientaddress Plausibility.
   #Denominator will be the number of complete patient addresses.
   #Numerator, will be the number of addresses that fall within accepted addresses.
-  mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
-  
-  rs1 = dbSendQuery(mydb, "select * from village")
-  all_villages <- fetch(rs1)
-  dbClearResult(rs1)
-  dbDisconnect(mydb)
-  
-  mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
-  rs2= dbSendQuery(mydb, "select * from traditional_authority")
-  all_traditional_authorities = fetch(rs2)
-  dbClearResult(rs2)
-  dbDisconnect(mydb)
-  
-  mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
-  rs3 = dbSendQuery(mydb, "select * from district")
-  all_districts = fetch(rs3)
-  dbClearResult(rs3)
-  dbDisconnect(mydb)
-  
-  complete_address
+  # mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
+  # 
+  # rs1 = dbSendQuery(mydb, "select * from village")
+  # all_villages <- fetch(rs1)
+  # dbClearResult(rs1)
+  # dbDisconnect(mydb)
+  # 
+  # mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
+  # rs2= dbSendQuery(mydb, "select * from traditional_authority")
+  # all_traditional_authorities = fetch(rs2)
+  # dbClearResult(rs2)
+  # dbDisconnect(mydb)
+  # 
+  # mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
+  # rs3 = dbSendQuery(mydb, "select * from district")
+  # all_districts = fetch(rs3)
+  # dbClearResult(rs3)
+  # dbDisconnect(mydb)
+  # 
+  # 
   
   #regular expression pattern for phone numbers. Filter those that are non numeric and are more than or less than 10 digits. 
   id_data_table_qech$plausible_phone_number = ifelse(str_length(id_data_table_qech$cell_number) == 10, "Plausible","Not Plausible")
@@ -216,25 +241,22 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
   #Number of prescriptions matching dispensed medicines
   #classify the prescriptions
   
-  drugs_data_table_qech %>%
-  select(patient_id:quantity) %>%
-  mutate(
-    type = case_when(
-      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
-      name == "TDF/3TC/EFV (300/300/600mg tablet)" ~ "5A",
-      name == "TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet)" ~ "6A",
-      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "7A",
-      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "8A",
-      name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "9A",
-      TRUE                      ~  "other"
-    )
-  )
+  # drugs_data_table_qech %>%
+  # select(patient_id:quantity) %>%
+  # mutate(
+  #   type = case_when(
+  #     name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
+  #     name == "TDF/3TC/EFV (300/300/600mg tablet)" ~ "5A",
+  #     name == "TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet)" ~ "6A",
+  #     name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "7A",
+  #     name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "8A",
+  #     name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "9A",
+  #     TRUE                      ~  "other"
+  #   )
+  # )
   
   
   #Plausible Viral load
-  
-  
-  
   
 ```
 
