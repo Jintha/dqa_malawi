@@ -21,6 +21,7 @@ library(knitr)
 library(lubridate)
 library(RMySQL)
 library(stringr)
+library(plyr)
 ```
 ## Starting data quality assessment using the kahn framework with the data quality attributes of:
 
@@ -43,6 +44,7 @@ Plausibility: This is the believability or truthfulness of observed data values,
  setwd("~/Dropbox/dissertation_data_analysis/")
 
 
+ id_table_with_gender = read.csv("kawale_query_one_with_gender.csv", stringsAsFactors = FALSE) 
 
 #QECH dataset
  id_data_table_qech           = read.csv("age_modified_kawale/kawale_query_1.csv", stringsAsFactors = FALSE)
@@ -59,6 +61,7 @@ Plausibility: This is the believability or truthfulness of observed data values,
  
  #Completeness Proportions
  #Patient tracking variables
+
  
  id_data_table_qech$complete_address = ifelse(id_data_table_qech$district !="NULL" & id_data_table_qech$ta != "NULL" &     id_data_table_qech$village != "NULL", "Complete","Incomplete")
  
@@ -144,31 +147,6 @@ Plausibility: This is the believability or truthfulness of observed data values,
  #Analyze the addresses as the field used for following up patients. Check the total number of patients that have been registered at each facility. Modification is that patient identifier no longer checked because HIV Testing Services (HTS) is not part of the available EMRs. Therefore check for total number of patients per site, then assess completeness of physical address as a set of "TA, district and village (current place of residence)"
 #Patients with complete physical addresses. We define complete village as all addresses that have got the smallest unit of address which represents the current place of residence. Residents without current place of residence cannot be followed up if they miss an appointment. This is a threat to the second 90 of patient retention. 
 
-```
-
-### Results
-
-*Completeness Table
-
-*Graph checking the completeness of address components. A complete address should have all components. 
-
-
-
-
-```{r display_results, results='markup'}
-  kable(completeness_table, caption = "Completeness of Documented Patient Records at a Selected ART Clinic",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
- 
-  ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
-
-
-
-
-```
-
-  
-```{r, plausibility, echo=FALSE, results='hide',include=FALSE}  
-  
-  
 # # Are all visits captured in the EMR data or there are some dates where there are very low number of visits?
 # # count encounter dates and number of patient observed weight values for each date.
 # 
@@ -202,6 +180,34 @@ Plausibility: This is the believability or truthfulness of observed data values,
 #   
 #   #ggplot(bmi_data_table, aes(x = new_encounter_date)) + geom_freqpoly(binwidth=1)
 
+ 
+ 
+ 
+```
+
+### Results
+
+*Completeness Table
+
+*Graph checking the completeness of address components. A complete address should have all components. 
+
+
+
+
+```{r display_results, results='markup'}
+  kable(completeness_table, caption = "Completeness of Documented Patient Records at a Selected ART Clinic",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
+ 
+  ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
+
+
+
+
+```
+
+  
+```{r, plausibility, echo=FALSE, results='hide',include=FALSE}  
+  
+  
 
 
 
@@ -210,29 +216,32 @@ Plausibility: This is the believability or truthfulness of observed data values,
   #Patientaddress Plausibility.
   #Denominator will be the number of complete patient addresses.
   #Numerator, will be the number of addresses that fall within accepted addresses.
-  # mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
-  # 
-  # rs1 = dbSendQuery(mydb, "select * from village")
-  # all_villages <- fetch(rs1)
-  # dbClearResult(rs1)
-  # dbDisconnect(mydb)
-  # 
-  # mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
-  # rs2= dbSendQuery(mydb, "select * from traditional_authority")
-  # all_traditional_authorities = fetch(rs2)
-  # dbClearResult(rs2)
-  # dbDisconnect(mydb)
-  # 
-  # mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
-  # rs3 = dbSendQuery(mydb, "select * from district")
-  # all_districts = fetch(rs3)
-  # dbClearResult(rs3)
-  # dbDisconnect(mydb)
-  # 
+  district_found = FALSE
+  traditional_authority_found = FALSE
+  village_found = FALSE
+  
+  mydb = dbConnect(MySQL(), user='root', password='', dbname = 'validation_tables', host='localhost')
+  rs1 = dbSendQuery(mydb, "select village.name as village_name, traditional_authority.name as ta_name, district.name as district_name from village inner join traditional_authority using(traditional_authority_id) inner join district on traditional_authority.district_id = district.district_id")
+  joined_addresses = dbFetch(rs1, n = -1)
+  id_data_table_qech = mutate(id_data_table_qech, plausible_address ="Not Plausible")
+  i = 1
+  while (i <= nrow(id_data_table_qech))
+    {
+    jd = joined_addresses %>% filter(district_name == id_data_table_qech[i,]$district & ta_name == id_data_table_qech[i,]$ta & village_name == id_data_table_qech[i,]$village)
+   id_data_table_qech[i,]$plausible_address = ifelse(empty(jd) == TRUE,"Not Plausible","Plausible")
+   i = i+1
+  } 
+   dbClearResult(rs1)
+   dbDisconnect(mydb)
+   
+   number_of_plausible_addresses = id_data_table_qech %>% filter(plausible_address == "Plausible") %>% nrow() 
+   proportion_of_palusible_addresses = number_of_plausible_addresses/number_of_complete_addresses*100
+   
   # 
   
   #regular expression pattern for phone numbers. Filter those that are non numeric and are more than or less than 10 digits. 
-  id_data_table_qech$plausible_phone_number = ifelse(str_length(id_data_table_qech$cell_number) == 10, "Plausible","Not Plausible")
+  
+   id_data_table_qech$plausible_phone_number = ifelse(str_length(id_data_table_qech$cell_number) == 10, "Plausible","Not Plausible")
   number_of_plausible_numbers = id_data_table_qech %>% filter(plausible_phone_number == "Plausible") %>% nrow()
   proportion_plausible_numbers = number_of_plausible_numbers/number_of_complete_phone_numbers*100
   
@@ -257,6 +266,39 @@ Plausibility: This is the believability or truthfulness of observed data values,
   
   
   #Plausible Viral load
+  #identify patients with more than two viral load
+  #Several categories. Select patients whose have a viral load start date is less than 6 months or more than a year after their ART start date. Check when Viral load measurement started as possible earliest date to avoid very long periods.
+  # 
+  
+  viral_load_data_table_lh$patient_ART_start_date = as.Date(viral_load_data_table_lh$patient_ART_start_date,"%Y-%m-%d")
+  viral_load_data_table_lh$patient_visit_date = as.Date(viral_load_data_table_lh$patient_visit_date, "%Y-%m-%d %T")
+  viral_load_data_table_lh$time_months = interval(viral_load_data_table_lh$patient_ART_start_date, viral_load_data_table_lh$patient_visit_date) %/% months(1)
+  months_until_first_vl = viral_load_data_table_lh %>% group_by(patient_id,patient_ART_start_date) %>% slice(1)  
+  months_until_first_vl$plausible = ifelse((months_until_first_vl$time_months >=6 & months_until_first_vl$time_months<=12),"Plausible","Not Plausible")
+  
+  #check for patients with two or more viral load results on the same day that are different and flag these as "Not Plausible"
+  
+  viral_load_data_table_lh = mutate(viral_load_data_table_lh, vrl_day_plausible ="Not Plausible")
+ #remove NAs from table before looping
+ viral_load_data_table_lh = viral_load_data_table_lh %>% na.omit(.)
+ 
+  
+ for (i in 1:(nrow(viral_load_data_table_lh) - 1))   
+  {
+   for (j in (i + 1):(nrow(viral_load_data_table_lh)))   
+    {
+      if((viral_load_data_table_lh$patient_id[i] == viral_load_data_table_lh$patient_id[j]) & (viral_load_data_table_lh$patient_visit_date[i] == viral_load_data_table_lh$patient_visit_date[j]))
+          {
+            viral_load_data_table_lh$vrl_day_plausible[i] = "Plausiblei"
+            viral_load_data_table_lh$vrl_day_plausible[j] = "Plausiblej"
+          }
+     }
+    print(i)
+   }
+      
+  #count number of records that do not have a viral load test date as not complete. 
+  #count records with test dates earlier than 2014-01-01 as not accurate. Avoid double counting.
+  
   
 ```
 
