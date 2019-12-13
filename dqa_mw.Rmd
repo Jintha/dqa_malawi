@@ -43,10 +43,33 @@ Plausibility: This is the believability or truthfulness of observed data values,
 # mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
  
 #Or set this to whereever your R working directory is. The read commands for the datasets will read from your directory too.
- setwd("~/Box Sync/quantitative_data/")
+setwd("~/Box Sync/quantitative_data/")
+#setwd("~/Dropbox/dissertation_data_analysis/")
+patient_address_files = list.files(path="~/Box Sync/quantitative_data/patient_address", pattern="*.csv", full.names=TRUE)
+patient_weight_files = list.files(path="~/Box Sync/quantitative_data/patient_weight_height", pattern="*.csv", full.names=TRUE)
+patient_drugs_files = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken", pattern="*.csv", full.names=TRUE)
+patient_drug_adherence_files = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence", pattern="*.csv", full.names=TRUE)
+patient_vl_files = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load", pattern="*.csv", full.names=TRUE)
 
- 
+#Build the dataframes for each file type.
+#Read filename. Create field that contains the filename. Classify hospital type. Combine datasets.
 
+
+read_plus <- function(flnm) {
+  print(flnm)
+  read_csv(flnm) %>% mutate(health_facility_type = "Health Center") #%>% mutate(health_facility_type = ifelse(grep("dedza",flnm, ignore.case = TRUE),"District","Tertiary")) #mutate(health_facility_type = ifelse(grep("dedza",flnm >= 1) | grep("mangochi",flnm >= 1) | grep("nkhatabay",flnm >= 1),"District","Tertiary"))
+}
+
+# classify_hospital = function(patient_table){
+#   mutate(patient_table, health_facility_type = ifelse(grep("dedza",patient_table$health_facility_type, ignore.case = TRUE),"District","Tertiary"))
+# }
+
+patient_address_df =
+  patient_address_files %>% 
+  map_df(~read_plus(.)) 
+
+patient_address_classified = patient_address_df %>% lapply(classify_hospital(.))
+   
 #QECH dataset
  id_data_table_qech           = read.csv("patient_address/qech_address.csv", stringsAsFactors = FALSE)
  drugs_data_table_qech        = read.csv("patient_drugs_taken/qech_query_drugs2.csv", stringsAsFactors = FALSE)
