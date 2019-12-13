@@ -57,18 +57,28 @@ patient_vl_files = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load"
 
 read_plus <- function(flnm) {
   print(flnm)
-  read_csv(flnm) %>% mutate(health_facility_type = "Health Center") #%>% mutate(health_facility_type = ifelse(grep("dedza",flnm, ignore.case = TRUE),"District","Tertiary")) #mutate(health_facility_type = ifelse(grep("dedza",flnm >= 1) | grep("mangochi",flnm >= 1) | grep("nkhatabay",flnm >= 1),"District","Tertiary"))
+  read_csv(flnm) %>% mutate(filename = flnm) #%>% mutate(health_facility_type = ifelse(grep("dedza",flnm, ignore.case = TRUE),"District","Tertiary")) #mutate(health_facility_type = ifelse(grep("dedza",flnm >= 1) | grep("mangochi",flnm >= 1) | grep("nkhatabay",flnm >= 1),"District","Tertiary"))
 }
 
+#Getting error here too
 # classify_hospital = function(patient_table){
-#   mutate(patient_table, health_facility_type = ifelse(grep("dedza",patient_table$health_facility_type, ignore.case = TRUE),"District","Tertiary"))
-# }
+#   print(str(patient_table))
+#   # for(i in 1:nrow(patient_table)){
+#   # mutate(patient_table, health_facility_type = ifelse((grep("dedza",patient_table$filename, ignore.case = TRUE) >= 1),"District","Tertiary"))  
+#   # } 
+#  }
 
 patient_address_df =
   patient_address_files %>% 
   map_df(~read_plus(.)) 
+patient_address_df = mutate(patient_address_df, health_facility_type = "Health center")
 
-patient_address_classified = patient_address_df %>% lapply(classify_hospital(.))
+#Getting Error here too
+# for(i in 1:nrow(patient_address_df)){
+#    mutate(patient_address_df[i,], health_facility_type = ifelse((grep("dedza",patient_address_df[i,]$filename, ignore.case = TRUE) >= 1),"District","Tertiary"))  
+# } 
+
+#patient_address_classified = patient_address_df %>% (classify_hospital(.))
    
 #QECH dataset
  id_data_table_qech           = read.csv("patient_address/qech_address.csv", stringsAsFactors = FALSE)
