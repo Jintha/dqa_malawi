@@ -23,7 +23,7 @@ library(RMySQL)
 library(stringr)
 library(plyr)
 library(table1)
-
+library(data.table)
 ```
 ## Starting data quality assessment using the kahn framework with the data quality attributes of:
 
@@ -45,91 +45,78 @@ Plausibility: This is the believability or truthfulness of observed data values,
 #Or set this to whereever your R working directory is. The read commands for the datasets will read from your directory too.
 setwd("~/Box Sync/quantitative_data/")
 #setwd("~/Dropbox/dissertation_data_analysis/")
-patient_address_files = list.files(path="~/Box Sync/quantitative_data/patient_address", pattern="*.csv", full.names=TRUE)
-patient_weight_files = list.files(path="~/Box Sync/quantitative_data/patient_weight_height", pattern="*.csv", full.names=TRUE)
-patient_drugs_files = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken", pattern="*.csv", full.names=TRUE)
-patient_drug_adherence_files = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence", pattern="*.csv", full.names=TRUE)
-patient_vl_files = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load", pattern="*.csv", full.names=TRUE)
+patient_address_files_district = list.files(path="~/Box Sync/quantitative_data/patient_address/District/", pattern="*.csv", full.names=TRUE)
+patient_address_files_tertiary = list.files(path="~/Box Sync/quantitative_data/patient_address/Tertiary/", pattern="*.csv", full.names=TRUE)
+patient_address_files_healthcenter = list.files(path="~/Box Sync/quantitative_data/patient_address/Health Center/", pattern="*.csv", full.names=TRUE)
+
+
+patient_weight_files_district = list.files(path="~/Box Sync/quantitative_data/patient_weight_height/District/", pattern="*.csv", full.names=TRUE)
+patient_weight_files_tertiary = list.files(path="~/Box Sync/quantitative_data/patient_weight_height/Tertiary/", pattern="*.csv", full.names=TRUE)
+patient_weight_files_healthcenter = list.files(path="~/Box Sync/quantitative_data/patient_weight_height/Health Center/", pattern="*.csv", full.names=TRUE)
+
+patient_drugs_files_district = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken/District/", pattern="*.csv", full.names=TRUE)
+patient_drugs_files_tertiary = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken/Tertiary/", pattern="*.csv", full.names=TRUE)
+patient_drugs_files_district = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/", pattern="*.csv", full.names=TRUE)
+
+patient_drug_adherence_files_district = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/District/", pattern="*.csv", full.names=TRUE)
+patient_drug_adherence_files_tertiary = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/", pattern="*.csv", full.names=TRUE)
+patient_drug_adherence_files_healthcenter = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/Health Center/", pattern="*.csv", full.names=TRUE)
+
+patient_vl_files_district = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load/District/", pattern="*.csv", full.names=TRUE)
+patient_vl_files_tertiary = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load/Tertiary/", pattern="*.csv", full.names=TRUE)
+patient_vl_files_health_center = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load/Health Center/", pattern="*.csv", full.names=TRUE)
+
+
+
 
 #Build the dataframes for each file type.
 #Read filename. Create field that contains the filename. Classify hospital type. Combine datasets.
 #transform(health_facility_type = ifelse(grep("dedza",flnm, ignore.case = TRUE) >= 1,"District","Tertiary")) 
 
-read_plus <- function(flnm) {
-  read_csv(flnm) %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_type = ifelse(grep("dedza",flnm >= 1) | grep("mangochi",flnm >= 1) | grep("nkhatabay",flnm >= 1),"District","Tertiary"))
+read_plus_districts <- function(flnm) {
+  read_csv(flnm) %>% mutate(health_facility_type = "District") 
 }
 
-#Getting error here too
-# classify_hospital = function(patient_table){
-#   print(str(patient_table))
-#   # for(i in 1:nrow(patient_table)){
-#   # mutate(patient_table, health_facility_type = ifelse((grep("dedza",patient_table$filename, ignore.case = TRUE) >= 1),"District","Tertiary"))  
-#   # } 
-#  }
+read_plus_tertiary <- function(flnm) {
+  read_csv(flnm) %>% mutate(health_facility_type = "Tertiary") 
+}
 
-patient_address_df =
-  patient_address_files %>% 
-  map_df(~read_plus(.)) 
+read_plus_health_center <- function(flnm) {
+  read_csv(flnm) %>% mutate(health_facility_type = "Health Center") 
+}
+
+#Build tables by health facility type
+patient_address_df_districts =
+  patient_address_files_district %>% 
+  map_df(~read_plus_districts(.)) 
+
+patient_address_df_tertiary =
+  patient_address_files_tertiary %>% 
+  map_df(~read_plus_tertiary(.)) 
+
+patient_address_df_health_center =
+  patient_address_files_healthcenter %>% 
+  map_df(~read_plus_health_center(.))
+
+#combine data frames
+l = list(patient_address_df_health_center,patient_address_df_tertiary,patient_address_df_districts)
+all_health_facility_addresses = rbindlist(l, use.names=TRUE)
 
 
-
-
-
-
-#Getting Error here too
- df_test = for(i in 1:nrow(patient_address_df)){
-    mutate(patient_address_df[i,], health_facility_type = ifelse((length("dedza") >= 1),"District","Tertiary"))  
-} 
-
-#patient_address_classified = patient_address_df %>% (classify_hospital(.))
-   
 #QECH dataset
- id_data_table_qech           = read.csv("patient_address/qech_address.csv", stringsAsFactors = FALSE)
- drugs_data_table_qech        = read.csv("patient_drugs_taken/qech_query_drugs2.csv", stringsAsFactors = FALSE)
- bmi_data_table_qech   = read.csv("patient_weight_height/qech_vitals.csv", stringsAsFactors = FALSE)
+
+setwd("~/Dropbox/dissertation_data_analysis/")
+id_data_table_qech           = read.csv("patient_address/qech_address.csv", stringsAsFactors = FALSE)
+drugs_data_table_qech        = read.csv("patient_drugs_taken/qech_query_drugs2.csv", stringsAsFactors = FALSE)
+bmi_data_table_qech   = read.csv("patient_weight_height/qech_vitals.csv", stringsAsFactors = FALSE)
 adherence_data_table_qech     = read.csv("patient_drug_adherence/mzuzu_central_adherence.csv", stringsAsFactors = FALSE)
- viral_load_data_table_qech = read.csv("hiv_viral_load/qech_VL.csv", stringsAsFactors = FALSE)
+viral_load_data_table_qech = read.csv("hiv_viral_load/qech_VL.csv", stringsAsFactors = FALSE)
 
- 
- #Kawale dataset
- #id_data_table_kawale           = read.csv("age_modified_kawale/kawale_query_1.csv", stringsAsFactors = FALSE)
- #drugs_data_table_kawale      = read.csv("age_modified_kawale/kawale_query_2.csv", stringsAsFactors = FALSE)
- #bmi_data_table_kawale = read.csv("age_modified_kawale/kawale_query_3.csv", stringsAsFactors = FALSE)
- #adherence_data_table_kawale   = read.csv("QECH_tables/qech_query_4.csv", stringsAsFactors = FALSE)
- 
- #Completeness Proportions
- #Patient tracking variables
- 
- 
- 
- id_data_table_qech$complete_address = ifelse(id_data_table_qech$district !="NULL" & id_data_table_qech$ta != "NULL" &     id_data_table_qech$village != "NULL", "Complete","Incomplete")
- 
- 
- 
- number_of_complete_addresses = id_data_table_qech %>% filter(complete_address =="Complete") %>% nrow()
- address_completeness_proportion = number_of_complete_addresses/total_number_of_patients*100
- address_completeness_proportion
- 
- id_data_table_qech$phone_number = ifelse(id_data_table_qech$cell_number !="NULL" & (id_data_table_qech$cell_number != "Unknown" |   id_data_table_qech$cell_number != "N/A"), "Complete","Incomplete")
- number_of_complete_phone_numbers = id_data_table_qech %>% filter(phone_number =="Complete") %>% nrow()
- phone_number_proportion = number_of_complete_phone_numbers/total_number_of_patients*100
- phone_number_proportion
 
- #Build Table 1
- #Total number of unique patient records per health facility
- #Breakdown by age groups in increments of 5
- #Breakdown gender
- #Total number of patient visits that are being analyzed
- #Total number of encounters or observations being analyzed
- #
- 
- id_data_table_qech$complete_address = factor(id_data_table_qech$complete_address)
- id_data_table_qech$gender = factor(id_data_table_qech$gender)
- 
- table1(~gender + age|complete_address, data = id_data_table_qech)
- 
- 
- 
+#Completeness Proportions
+#Patient tracking variables
+#Total Number of patients
+#Qech
  
  #completeness
  #Patient retention and health tracking
