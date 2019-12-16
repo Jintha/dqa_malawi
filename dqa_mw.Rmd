@@ -56,7 +56,7 @@ patient_weight_files_healthcenter = list.files(path="~/Box Sync/quantitative_dat
 
 patient_drugs_files_district = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken/District/", pattern="*.csv", full.names=TRUE)
 patient_drugs_files_tertiary = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken/Tertiary/", pattern="*.csv", full.names=TRUE)
-patient_drugs_files_district = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/", pattern="*.csv", full.names=TRUE)
+patient_drugs_files_healthcenter = list.files(path="~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/", pattern="*.csv", full.names=TRUE)
 
 patient_drug_adherence_files_district = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/District/", pattern="*.csv", full.names=TRUE)
 patient_drug_adherence_files_tertiary = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/", pattern="*.csv", full.names=TRUE)
@@ -71,10 +71,9 @@ patient_vl_files_health_center = list.files(path="~/Box Sync/quantitative_data/h
 
 #Build the dataframes for each file type.
 #Read filename. Create field that contains the filename. Classify hospital type. Combine datasets.
-#transform(health_facility_type = ifelse(grep("dedza",flnm, ignore.case = TRUE) >= 1,"District","Tertiary")) 
 
 read_plus_districts <- function(flnm) {
-  read_csv(flnm) %>% mutate(health_facility_type = "District") 
+  read_csv(flnm) %>%  mutate(health_facility_type = "District") 
 }
 
 read_plus_tertiary <- function(flnm) {
@@ -85,7 +84,7 @@ read_plus_health_center <- function(flnm) {
   read_csv(flnm) %>% mutate(health_facility_type = "Health Center") 
 }
 
-#Build tables by health facility type
+#Build tables by health facility type for patient address
 patient_address_df_districts =
   patient_address_files_district %>% 
   map_df(~read_plus_districts(.)) 
@@ -98,9 +97,58 @@ patient_address_df_health_center =
   patient_address_files_healthcenter %>% 
   map_df(~read_plus_health_center(.))
 
+#Build tables for patient weight
+patient_weight_df_districts = rbindlist(lapply(patient_weight_files_district, fread))
+patient_weight_df_tertiary = rbindlist(lapply(patient_weight_files_tertiary, fread))
+patient_weight_df_health_center = rbindlist(lapply(patient_weight_files_healthcenter, fread))
+  
+
+#Build tables for patient adherence
+patient_adherence_df_districts = rbindlist(lapply(patient_drug_adherence_files_district, fread))
+patient_adherence_tertiary = rbindlist(lapply(patient_drug_adherence_files_tertiary, fread))
+patient_adherence_health_center = rbindlist(lapply(patient_drug_adherence_files_healthcenter, fread))
+ 
+
+#Build drugs dispensed files
+patient_drugs_districts =  rbindlist(lapply(patient_drugs_files_district, fread),fill = TRUE)
+patient_drugs_tertiary = rbindlist(lapply(patient_drugs_files_tertiary, fread), fill = TRUE)
+patient_drugs_healthcenter = rbindlist(lapply(patient_drugs_files_healthcenter, fread), fill = TRUE)
+
+patient_drugs_healthcenter=
+  patient_drugs_files_healthcenter %>% 
+  map_df(~read_plus_districts(.)) 
+
+ 
+
+#Build patient viral load files
+patient_vl_districts =
+  patient_vl_files_district %>% 
+  map_df(~read_plus_districts(.)) 
+patient_vl_districts = patient_vl_districts %>%  mutate_all(.,as.character)
+
+patient_vl_tertiary = rbindlist(lapply(patient_vl_files_tertiary, fread)) %>% mutate(health_facility_type = "Tertiary")
+#Rename column name for consistency in binding
+names(patient_vl_tertiary)[names(patient_vl_tertiary) == "patient_ART_start_date"] <- "ART_start_date"   
+
+patient_vl_healthcenter =
+  patient_vl_files_health_center %>% 
+  map_df(~read_plus_health_center(.))
+patient_vl_healthcenter = patient_vl_healthcenter %>%  mutate_all(.,as.character)
+
 #combine data frames
-l = list(patient_address_df_health_center,patient_address_df_tertiary,patient_address_df_districts)
-all_health_facility_addresses = rbindlist(l, use.names=TRUE)
+patient_address_list = list(patient_address_df_health_center,patient_address_df_tertiary,patient_address_df_districts)
+patient_weight_list = list(patient_weight_df_districts,patient_weight_df_health_center,patient_weight_df_tertiary)
+patient_adherence_list = list(patient_adherence_df_districts,patient_adherence_tertiary) # healthcenter data frames are off
+patient_drugs_list = list(patient_drugs_districts,patient_drugs_healthcenter,patient_drugs_tertiary) # all data frames are off.
+patient_vl_list = list(patient_vl_districts,patient_vl_healthcenter,patient_vl_tertiary)
+
+
+all_health_facility_addresses = rbindlist(patient_address_list, use.names=TRUE)
+all_health_facility_weights = rbindlist(patient_weight_list, use.names = TRUE)
+all_health_facility_adherence = rbindlist(patient_adherence_list,use.names = TRUE)
+#all_health_facility_drugs = rbindlist(patient_drugs_list, use.names = TRUE)
+all_health_facility_vl = rbindlist(patient_vl_list, use.names = TRUE)
+
 
 
 #QECH dataset
