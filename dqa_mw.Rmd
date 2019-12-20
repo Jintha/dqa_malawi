@@ -3,14 +3,16 @@ title: "data_quality_assessment_malawi"
 author: "ojgadabu"
 date: "2/5/2019"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   word_document: default
 ---
 
 ```{r global_options, setup, include=FALSE}
 knitr::opts_chunk$set(fig.width = 8, fig.height = 8,
                       warning = FALSE, message = FALSE)
+
+
 library(gplots)
 library(cluster)
 library(tidyverse)
@@ -25,6 +27,8 @@ library(plyr)
 library(table1)
 library(data.table)
 ```
+
+
 ## Starting data quality assessment using the kahn framework with the data quality attributes of:
 
 Completeness: Presence of data for an observation regardless of the structure or value of the data. For VL could be -100 or 700 or 200,000.
@@ -34,7 +38,7 @@ Plausibility: This is the believability or truthfulness of observed data values,
 
 
 ```{r manipulation, echo=FALSE, results='hide'}
-
+#knitr::opts_knit$set(root.dir = "~/Box Sync/quantitative_data/")
 
 # read in a dataset with all its tables: 
 # test code
@@ -43,8 +47,7 @@ Plausibility: This is the believability or truthfulness of observed data values,
 # mydb = dbConnect(MySQL(), user='root', password='', dbname='validation_tables', host='localhost')
  
 #Or set this to whereever your R working directory is. The read commands for the datasets will read from your directory too.
-setwd("~/Box Sync/quantitative_data/")
-#setwd("~/Dropbox/dissertation_data_analysis/")
+
 patient_address_files_district = list.files(path="~/Box Sync/quantitative_data/patient_address/District/", pattern="*.csv", full.names=TRUE)
 patient_address_files_tertiary = list.files(path="~/Box Sync/quantitative_data/patient_address/Tertiary/", pattern="*.csv", full.names=TRUE)
 patient_address_files_healthcenter = list.files(path="~/Box Sync/quantitative_data/patient_address/Health Center/", pattern="*.csv", full.names=TRUE)
@@ -65,8 +68,6 @@ patient_drug_adherence_files_healthcenter = list.files(path="~/Box Sync/quantita
 patient_vl_files_district = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load/District/", pattern="*.csv", full.names=TRUE)
 patient_vl_files_tertiary = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load/Tertiary/", pattern="*.csv", full.names=TRUE)
 patient_vl_files_health_center = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load/Health Center/", pattern="*.csv", full.names=TRUE)
-
-
 
 
 #Build the dataframes for each file type.
@@ -106,7 +107,7 @@ patient_weight_df_health_center = rbindlist(lapply(patient_weight_files_healthce
 #Build tables for patient adherence
 patient_adherence_df_districts = rbindlist(lapply(patient_drug_adherence_files_district, fread))
 patient_adherence_tertiary = rbindlist(lapply(patient_drug_adherence_files_tertiary, fread))
-patient_adherence_health_center = rbindlist(lapply(patient_drug_adherence_files_healthcenter, fread))
+#patient_adherence_health_center = rbindlist(lapply(patient_drug_adherence_files_healthcenter, fread))
  
 
 #Build drugs dispensed files
@@ -128,7 +129,7 @@ patient_vl_districts = patient_vl_districts %>%  mutate_all(.,as.character)
 
 patient_vl_tertiary = rbindlist(lapply(patient_vl_files_tertiary, fread)) %>% mutate(health_facility_type = "Tertiary")
 #Rename column name for consistency in binding
-names(patient_vl_tertiary)[names(patient_vl_tertiary) == "patient_ART_start_date"] <- "ART_start_date"   
+names(patient_vl_tertiary)[names(patient_vl_tertiary) == "patient_ART_start_date"] = "ART_start_date"   
 
 patient_vl_healthcenter =
   patient_vl_files_health_center %>% 
@@ -153,12 +154,12 @@ all_health_facility_vl = rbindlist(patient_vl_list, use.names = TRUE)
 
 #QECH dataset
 
-setwd("~/Dropbox/dissertation_data_analysis/")
-id_data_table_qech           = read.csv("patient_address/qech_address.csv", stringsAsFactors = FALSE)
-drugs_data_table_qech        = read.csv("patient_drugs_taken/qech_query_drugs2.csv", stringsAsFactors = FALSE)
-bmi_data_table_qech   = read.csv("patient_weight_height/qech_vitals.csv", stringsAsFactors = FALSE)
-adherence_data_table_qech     = read.csv("patient_drug_adherence/mzuzu_central_adherence.csv", stringsAsFactors = FALSE)
-viral_load_data_table_qech = read.csv("hiv_viral_load/qech_VL.csv", stringsAsFactors = FALSE)
+#setwd("~/Dropbox/dissertation_data_analysis/")
+id_data_table_qech           = read.csv("~/Box Sync/quantitative_data/patient_address/Tertiary/qech_address.csv", stringsAsFactors = FALSE)
+drugs_data_table_qech        = read.csv("~/Box Sync/quantitative_data/patient_drugs_taken/Tertiary/qech_query_drugs2.csv", stringsAsFactors = FALSE)
+bmi_data_table_qech   = read.csv("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/qech_vitals.csv", stringsAsFactors = FALSE)
+adherence_data_table_qech     = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/qech_adherence.csv")
+viral_load_data_table_qech = read.csv("~/Box Sync/quantitative_data/hiv_viral_load/Tertiary/qech_VL.csv", stringsAsFactors = FALSE)
 
 
 #Completeness Proportions
@@ -169,77 +170,169 @@ viral_load_data_table_qech = read.csv("hiv_viral_load/qech_VL.csv", stringsAsFac
  #completeness
  #Patient retention and health tracking
  #Denominator is all patient visits during the study period (January 2017 to December 2018). At minimum, each patient should have their vital signs measured when they visit the clinic. Therefore the denominator will be the number of encounters in the weight table.
- #BMI
- total_number_of_patient_visits = bmi_data_table_qech %>% nrow()
- number_of_complete_weight_observations = bmi_data_table_qech %>% filter(weight != "NULL") %>% nrow()
- proportion_complete_weight_documentation = number_of_complete_weight_observations/total_number_of_patient_visits * 100
- proportion_complete_weight_documentation
+
+#Fix gender variable for address table.
+id_data_table_qech$gender = ifelse (id_data_table_qech$gender == "F" | id_data_table_qech$gender == "Female","Female","Male")
+all_health_facility_addresses$gender = ifelse (all_health_facility_addresses$gender == "F" | all_health_facility_addresses$gender == "Female","Female","Male")
+
+
+#Physical Address Health Facility
+id_data_table_qech$complete_address = ifelse(id_data_table_qech$district !="NULL" & id_data_table_qech$ta != "NULL" &     id_data_table_qech$village != "NULL", "Complete","Incomplete")
+total_number_of_patients = id_data_table_qech %>% nrow()
+number_of_complete_addresses = id_data_table_qech %>% filter(complete_address =="Complete") %>% nrow()
+address_completeness_proportion = number_of_complete_addresses/total_number_of_patients*100
+address_completeness_proportion
+
+#Physical Address All Health Facilities
+all_health_facility_addresses$complete_address =  ifelse(all_health_facility_addresses$district !="NULL" & all_health_facility_addresses$ta != "NULL" &     all_health_facility_addresses$village != "NULL", "Complete","Incomplete")
+number_of_all_complete_addresses = all_health_facility_addresses %>% filter(complete_address =="Complete") %>% nrow()
+total_number_of_all_patients = all_health_facility_addresses %>% nrow()
+all_address_completeness_proportion = number_of_all_complete_addresses / total_number_of_all_patients * 100
+#Phone number
+#
+id_data_table_qech$phone_number = ifelse(id_data_table_qech$cell_number !="NULL" & (id_data_table_qech$cell_number != "Unknown" |   id_data_table_qech$cell_number != "N/A"), "Complete","Incomplete")
+all_health_facility_addresses$phone_number = ifelse(all_health_facility_addresses$cell_number !="NULL" & (all_health_facility_addresses$cell_number != "Unknown" |   all_health_facility_addresses$cell_number != "N/A"), "Complete","Incomplete")
+
+number_of_complete_phone_numbers = id_data_table_qech %>% filter(phone_number =="Complete") %>% nrow()
+number_of_all_complete_phone_numbers = all_health_facility_addresses %>% filter(phone_number =="Complete") %>% nrow()
+phone_number_proportion = number_of_complete_phone_numbers/total_number_of_patients*100
+all_phone_number_proportion = number_of_all_complete_phone_numbers/total_number_of_all_patients*100
+phone_number_proportion
+
+
+#BMI
+
+total_number_of_patient_visits = bmi_data_table_qech %>% nrow()
+all_total_number_of_patient_visits = all_health_facility_weights %>% nrow()
+
+bmi_data_table_qech$complete_weight = ifelse(bmi_data_table_qech$weight != "NULL", "Complete","Incomplete") 
+all_health_facility_weights$complete_weight = ifelse(all_health_facility_weights$weight != "NULL", "Complete","Incomplete") 
+ 
+number_of_complete_weight_observations = bmi_data_table_qech %>% filter(complete_weight == "Complete") %>% nrow()
+all_number_of_complete_weight_observations = all_health_facility_weights %>% filter(complete_weight == "Complete") %>% nrow()
+ 
+proportion_all_complete_weight_documentation = all_number_of_complete_weight_observations / all_total_number_of_patient_visits * 100
+ 
+proportion_complete_weight_documentation = number_of_complete_weight_observations/total_number_of_patient_visits * 100
+proportion_complete_weight_documentation
+proportion_all_complete_weight_documentation
   
  
- #Prescription
- #Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denomina"tor where the expectation is a single value for each day.
+#Prescription
+#Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denomina"tor where the expectation is a single value for each day.
  
- total_number_of_prescriptions = drugs_data_table_qech %>% nrow()
- #Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
+total_number_of_prescriptions = drugs_data_table_qech %>% nrow()
+#Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
  
- number_of_complete_prescriptions = drugs_data_table_qech %>% filter(quantity != "NULL") %>% nrow() # NULL records indicate that the prescription was not filled. We take only complete prescriptions here.
- prescription_completeness_proportion = number_of_complete_prescriptions / total_number_of_prescriptions * 100
- prescription_completeness_proportion
+number_of_complete_prescriptions = drugs_data_table_qech %>% filter(quantity != "NULL") %>% nrow() # NULL records indicate that the prescription was not filled. We take only complete prescriptions here.
+prescription_completeness_proportion = number_of_complete_prescriptions / total_number_of_prescriptions * 100
+prescription_completeness_proportion
  
- #Adherence
- #Revising the original tables here from source since they were corrupted.
- adherence_data_table_qech = mutate(adherence_data_table_qech, complete_adherence = ifelse(adherence_in_percentage == "NULL", "Incomplete","Complete"))
- number_of_patients_with_complete_adherence = adherence_data_table_qech %>% filter(complete_adeherence == "Complete")
- number_of_patient_adherence_visits = adherence_data_table_qech %>% nrow()
+#Adherence
+#Revising the original tables here from source since they were corrupted.
  
- proportion_adherence = number_of_patients_with_complete_adherence/number_of_patient_adherence_visits*100
+adherence_data_table_qech = mutate(adherence_data_table_qech, complete_adherence = ifelse(adherence_in_percentage == "NULL", "Incomplete","Complete"))
+all_health_facility_adherence = mutate(all_health_facility_adherence, complete_adherence = ifelse(adherence_in_percentage == "NULL", "Incomplete","Complete"))
+ 
+number_of_patients_with_complete_adherence = adherence_data_table_qech %>% filter(complete_adherence == "Complete") %>% nrow()
+number_of_all_patients_with_complete_adherence = all_health_facility_adherence  %>% filter(complete_adherence == "Complete") %>% nrow()
+ 
+number_of_patient_adherence_visits = adherence_data_table_qech %>% nrow()
+number_of_all_patient_adherence_visits = all_health_facility_adherence %>% nrow()
+ 
+proportion_adherence = number_of_patients_with_complete_adherence / number_of_patient_adherence_visits*100
+ all_proportion_adherence = number_of_all_patients_with_complete_adherence / number_of_all_patient_adherence_visits * 100
+all_proportion_adherence
 
  
  #Viral load
  #total number of patients that have been registered since the begining of the clinic to 6 months before the end of the study period
  #number of patients with a viral load reading documented in this period.
  #The tables here from one clinic only. The others are being uploaded.
- 
- 
- 
-  total_number_of_patients_lh = viral_load_data_table_qech %>% nrow()
-  viral_load_data_table_qech$complete_viral_load =  ifelse((viral_load_data_table_qech$patient_VL_results != "" & viral_load_data_table_qech$patient_VL_results != "NULL"), "Complete","Incomplete") 
- 
-   number_of_complete_viral_loads = viral_load_data_table_qech %>% filter(complete_viral_load == "Complete") %>% nrow()
+
+total_number_of_patients_lh = viral_load_data_table_qech %>% nrow()
+total_number_vl_all_patients = all_health_facility_vl %>% nrow()
   
-   proportion_of_complete_vl_lh = number_of_complete_viral_loads/total_number_of_patients_lh * 100
+viral_load_data_table_qech$complete_viral_load =  ifelse((viral_load_data_table_qech$patient_VL_results != "" & viral_load_data_table_qech$patient_VL_results != "NULL"), "Complete","Incomplete") 
+
+all_health_facility_vl$complete_viral_load =  ifelse((all_health_facility_vl$patient_VL_results != "" & all_health_facility_vl$patient_VL_results != "NULL"), "Complete","Incomplete") 
  
+
+number_of_complete_viral_loads = viral_load_data_table_qech %>% filter(complete_viral_load == "Complete") %>% nrow()
+number_of_all_complete_viral_loads = all_health_facility_vl %>% filter(complete_viral_load == "Complete")  %>% nrow()
+
+proportion_of_complete_vl_lh = number_of_complete_viral_loads/total_number_of_patients_lh * 100
+proportion_of_all_complete_vl = number_of_all_complete_viral_loads/total_number_vl_all_patients * 100
  
- #Build the completeness data tables
- Variable_Names = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescription Made","Drug Adherence")
+#Build the completeness data tables
+#One health facility example
+Variable_Names = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescription Made","Drug Adherence")
  
- Numerators = c(number_of_complete_addresses,number_of_complete_phone_numbers,number_of_complete_weight_observations,number_of_complete_viral_loads,number_of_complete_prescriptions,number_of_patients_with_complete_adherence)
+Numerators = c(number_of_complete_addresses,number_of_complete_phone_numbers,number_of_complete_weight_observations,number_of_complete_viral_loads,number_of_complete_prescriptions,number_of_patients_with_complete_adherence)
  
- Denominators = c(total_number_of_patients,total_number_of_patients,total_number_of_patient_visits,total_number_of_patients_lh,total_number_of_prescriptions,number_of_patient_adherence_visits)
+Denominators = c(total_number_of_patients,total_number_of_patients,total_number_of_patient_visits,total_number_of_patients_lh,total_number_of_prescriptions,number_of_patient_adherence_visits)
+
+Proportions = c(address_completeness_proportion,phone_number_proportion,proportion_complete_weight_documentation,proportion_of_complete_vl_lh,prescription_completeness_proportion,proportion_adherence)
  
- Proportions = c(address_completeness_proportion,phone_number_proportion,proportion_complete_weight_documentation,proportion_of_complete_vl_lh,prescription_completeness_proportion,proportion_adherence)
+completeness_table = data.frame(Variable_Names,Numerators,Denominators,Proportions, stringsAsFactors = FALSE)
+
+
+completeness_table$Numerators = as.numeric(completeness_table$Numerators)
+completeness_table$Denominators = as.numeric(completeness_table$Denominators)
+completeness_table$Proportions = as.numeric(completeness_table$Proportions)
  
- completeness_table = data.frame(Variable_Names,Numerators,Denominators,Proportions, stringsAsFactors = FALSE)
+######### Could best be done with a function that creates these tables to avoid errors.
+######### 
+# Completeness Table for All Health Facilities
+variable_names_all = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescriptions Made","Drug Adherence")
+
+numerators_all = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,number_of_all_complete_viral_loads,"0",number_of_all_patients_with_complete_adherence)
+
+denominators_all = c(total_number_of_all_patients,total_number_of_all_patients,all_total_number_of_patient_visits,total_number_vl_all_patients,"0",number_of_all_patient_adherence_visits)
+
+proportions_all = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_all_complete_weight_documentation,proportion_of_all_complete_vl,"0",all_proportion_adherence)
  
- completeness_table$Numerators = as.numeric(completeness_table$Numerators)
- completeness_table$Denominators = as.numeric(completeness_table$Denominators)
- completeness_table$Proportions = as.numeric(completeness_table$Proportions)
+all_healthfacility_completeness_table = data.frame(variable_names_all,numerators_all,denominators_all,proportions_all, stringsAsFactors = FALSE)
  
- 
- 
+all_healthfacility_completeness_table$numerators_all = as.numeric(all_healthfacility_completeness_table$numerators_all)
+
+all_healthfacility_completeness_table$denominators_all = as.numeric(all_healthfacility_completeness_table$denominators_all)
+
+all_healthfacility_completeness_table$proportions_all = as.numeric(all_healthfacility_completeness_table$proportions_all)
+
+### factor these variables for table 1
+id_data_table_qech$complete_address = factor(id_data_table_qech$complete_address)
+id_data_table_qech$gender = factor(id_data_table_qech$gender)
+all_health_facility_addresses$health_facility_type = factor(all_health_facility_addresses$health_facility_type)
+all_health_facility_addresses$gender = factor(all_health_facility_addresses$gender)
+all_health_facility_addresses$complete_address = factor(all_health_facility_addresses$complete_address)
+
+###
+
 # cd$address_value = ifelse(cd$address_value == "Other"), "Other", cd$address_value))
 
  #What is the completeness of individual sections of patient address since it is divided into 3 parts.This is checking the denominators. 
  
- cd = gather(id_data_table_qech,"address_section","address_value",2:4) 
+cd = gather(all_health_facility_addresses,"address_section","address_value",2:4) 
  
- cd$address_value = ifelse((cd$address_value == "Other"), "Documented Other",cd$address_value)
- cd$address_value = ifelse((cd$address_value == "NULL"), "Not documented",cd$address_value)
- cd$address_value = ifelse((cd$address_value != "Documented Other" &  cd$address_value != "Not documented" ), "Address Unit Documented",      cd$address_value) 
+cd$address_value = ifelse((cd$address_value == "Other"), "Documented Other",cd$address_value)
+cd$address_value = ifelse((cd$address_value == "NULL"), "Not documented",cd$address_value)
+cd$address_value = ifelse((cd$address_value != "Documented Other" &  cd$address_value != "Not documented" ), "Address Unit Documented",      cd$address_value) 
 
- cd$address_section = as.factor(cd$address_section)
- cd$address_value = as.factor(cd$address_value)
+cd$address_section = as.factor(cd$address_section)
+cd$address_value = as.factor(cd$address_value)
  
+#Tables to Further Analyze completeness
+#
+
+ a = table1(~gender + age|complete_address, data = id_data_table_qech, output = "markdown")
+
+ b = table1(~gender + age|health_facility_type, data = all_health_facility_addresses, output = "pandoc")
+
+
+ c = table1(~gender + age + health_facility_type|complete_address, data = all_health_facility_addresses, output = "html")
+
+
  #Analyze the addresses as the field used for following up patients. Check the total number of patients that have been registered at each facility. Modification is that patient identifier no longer checked because HIV Testing Services (HTS) is not part of the available EMRs. Therefore check for total number of patients per site, then assess completeness of physical address as a set of "TA, district and village (current place of residence)"
 #Patients with complete physical addresses. We define complete village as all addresses that have got the smallest unit of address which represents the current place of residence. Residents without current place of residence cannot be followed up if they miss an appointment. This is a threat to the second 90 of patient retention. 
 
@@ -281,122 +374,202 @@ viral_load_data_table_qech = read.csv("hiv_viral_load/qech_VL.csv", stringsAsFac
  
 ```
 
-### Results
-
-*Completeness Table
-
-*Graph checking the completeness of address components. A complete address should have all components. 
-
-
-
-
-```{r display_results, results='markup'}
-  kable(completeness_table, caption = "Completeness of Documented Patient Records at a Selected ART Clinic",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
- 
-  ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
-
-
-
-
-```
 
   
 ```{r, plausibility, echo=FALSE, results='hide',include=FALSE}  
   
   
+#Plausibility. Are the data that have been built believable? Are they accurate. We assess the complete data here.
+
+#Patientaddress Plausibility.
+#Denominator will be the number of complete patient addresses.
+#Numerator, will be the number of addresses that fall within accepted addresses.
 
 
+mydb = dbConnect(
+  MySQL(),
+  user = 'root',
+  password = '',
+  dbname = 'validation_tables',
+  host = 'localhost'
+)
+rs1 = dbSendQuery(
+  mydb,
+  "select village.name as village_name, traditional_authority.name as ta_name, district.name as district_name from village inner join traditional_authority using(traditional_authority_id) inner join district on traditional_authority.district_id = district.district_id"
+)
+joined_addresses = dbFetch(rs1, n = -1)
 
-  #Plausibility. Are the data that have been built believable? Are they accurate. We assess the complete data here.
-  
-  #Patientaddress Plausibility.
-  #Denominator will be the number of complete patient addresses.
-  #Numerator, will be the number of addresses that fall within accepted addresses.
-  district_found = FALSE
-  traditional_authority_found = FALSE
-  village_found = FALSE
-  
-  mydb = dbConnect(MySQL(), user='root', password='', dbname = 'validation_tables', host='localhost')
-  rs1 = dbSendQuery(mydb, "select village.name as village_name, traditional_authority.name as ta_name, district.name as district_name from village inner join traditional_authority using(traditional_authority_id) inner join district on traditional_authority.district_id = district.district_id")
-  joined_addresses = dbFetch(rs1, n = -1)
-  id_data_table_qech = mutate(id_data_table_qech, plausible_address ="Not Plausible")
-  i = 1
-  while (i <= nrow(id_data_table_qech))
-    {
-    jd = joined_addresses %>% filter(district_name == id_data_table_qech[i,]$district & ta_name == id_data_table_qech[i,]$ta & village_name == id_data_table_qech[i,]$village)
-   id_data_table_qech[i,]$plausible_address = ifelse(empty(jd) == TRUE,"Not Plausible","Plausible")
-   i = i+1
-  } 
-   dbClearResult(rs1)
-   dbDisconnect(mydb)
-   
-   number_of_plausible_addresses = id_data_table_qech %>% filter(plausible_address == "Plausible") %>% nrow() 
-   proportion_of_palusible_addresses = number_of_plausible_addresses/number_of_complete_addresses*100
-   
-  # 
-  
-  #regular expression pattern for phone numbers. Filter those that are non numeric and are more than or less than 10 digits. 
-  
-   id_data_table_qech$plausible_phone_number = ifelse(str_length(id_data_table_qech$cell_number) == 10, "Plausible","Not Plausible")
-   number_of_plausible_numbers = id_data_table_qech %>% filter(plausible_phone_number == "Plausible") %>% nrow()
-   proportion_plausible_numbers = number_of_plausible_numbers/number_of_complete_phone_numbers*100
-  
-  
-  #Atemporal Plausibility prescriptions
-  #Number of prescriptions matching dispensed medicines
-  #classify the prescriptions
-  
-  # drugs_data_table_qech %>%
-  # select(patient_id:quantity) %>%
-  # mutate(
-  #   type = case_when(
-  #     name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "2A",
-  #     name == "TDF/3TC/EFV (300/300/600mg tablet)" ~ "5A",
-  #     name == "TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet)" ~ "6A",
-  #     name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "7A",
-  #     name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "8A",
-  #     name == "AZT/3TC/NVP (300/150/200mg tablet)" ~ "9A",
-  #     TRUE                      ~  "other"
-  #   )
-  # )
-  
-  
-  #Plausible Viral load
-  #identify patients with more than two viral load
-  #Several categories. Select patients whose have a viral load start date is less than 6 months or more than a year after their ART start date. Check when Viral load measurement started as possible earliest date to avoid very long periods.
-  # 
-  
-  viral_load_data_table_lh$patient_ART_start_date = as.Date(viral_load_data_table_lh$patient_ART_start_date,"%Y-%m-%d")
-  viral_load_data_table_lh$patient_visit_date = as.Date(viral_load_data_table_lh$patient_visit_date, "%Y-%m-%d %T")
-  viral_load_data_table_lh$time_months = interval(viral_load_data_table_lh$patient_ART_start_date, viral_load_data_table_lh$patient_visit_date) %/% months(1)
-  months_until_first_vl = viral_load_data_table_lh %>% group_by(patient_id,patient_ART_start_date) %>% slice(1)  
-  months_until_first_vl$plausible = ifelse((months_until_first_vl$time_months >=6 & months_until_first_vl$time_months<=12),"Plausible","Not Plausible")
-  
-  #check for patients with two or more viral load results on the same day that are different and flag these as "Not Plausible"
-  
-  viral_load_data_table_lh = mutate(viral_load_data_table_lh, vrl_day_plausible ="Not Plausible")
- #remove NAs from table before looping
- viral_load_data_table_lh = viral_load_data_table_lh %>% na.omit(.)
- 
-  
- for (i in 1:(nrow(viral_load_data_table_lh) - 1))   
+dbClearResult(rs1)
+dbDisconnect(mydb)
+
+
+id_data_table_qech = mutate(id_data_table_qech, plausible_address = "Not Plausible")
+
+all_health_facility_addresses = mutate(all_health_facility_addresses, plausible_address = "Not Plausible")
+
+plausible_physical_address <- function(address_table) {
+i = 1
+while (i <= nrow(address_table))
+{
+  jd = joined_addresses %>% filter(
+    district_name == address_table[i, ]$district &
+      ta_name == address_table[i, ]$ta &
+      village_name == address_table[i, ]$village
+  )
+  address_table[i, ]$plausible_address = ifelse(empty(jd) == TRUE, "Not Plausible", "Plausible")
+  i = i + 1
+}
+return(address_table)
+}
+
+number_of_plausible_addresses = plausible_physical_address(id_data_table_qech) %>% filter(plausible_address == "Plausible") %>% nrow()
+
+number_of_all_plausible_addresses = plausible_physical_address(all_health_facility_addresses) %>% filter(plausible_address == "Plausible") %>% nrow()
+
+proportion_of_palusible_addresses = number_of_plausible_addresses / number_of_complete_addresses * 100
+
+proportion_of_all_palusible_addresses = number_of_all_plausible_addresses / number_of_all_complete_addresses * 100
+
+#
+
+#regular expression pattern for phone numbers. Filter those that are non numeric and are more than or less than 10 digits.
+
+id_data_table_qech$plausible_phone_number = ifelse(str_length(id_data_table_qech$cell_number) == 10,
+                                                   "Plausible",
+                                                   "Not Plausible")
+
+all_health_facility_addresses$plausible_phone_number = ifelse(str_length(all_health_facility_addresses$cell_number) == 10,"Plausible","Not Plausible")
+
+number_of_plausible_phone_numbers = id_data_table_qech %>% filter(plausible_phone_number == "Plausible") %>% nrow()
+number_of_all_plausible_phone_numbers = all_health_facility_addresses %>% filter(plausible_phone_number == "Plausible") %>% nrow()
+
+proportion_plausible_numbers = number_of_plausible_numbers / number_of_complete_phone_numbers *
+  100
+proportion_of_all_plausible_numbers = number_of_all_plausible_phone_numbers / number_of_all_complete_phone_numbers * 100
+
+
+# Plausible Weight Values
+number_of_plausible_weight_observations = 1
+proportion_plausible_weights = number_of_plausible_weight_observations/number_of_complete_weight_observations * 100
+#Plausible Drugs
+
+number_of_plausible_prescriptions = 1
+prescription_plausibility_proportion = number_of_plausible_prescriptions / number_of_complete_prescriptions *100
+
+#Plausible Adherence
+#
+number_of_patients_with_plausible_adherence = 1
+proportion_plausible_adherence = number_of_patients_with_plausible_adherence / number_of_patients_with_complete_adherence * 100
+
+#Plausible Viral load
+#identify patients with more than two viral load
+#Several categories. Select patients whose have a viral load start date is less than 6 months or more than a year after their ART start date. Check when Viral load measurement started as possible earliest date to avoid very long periods.
+#
+
+viral_load_data_table_qech$patient_ART_start_date = as.Date(viral_load_data_table_qech$patient_ART_start_date, "%Y-%m-%d")
+viral_load_data_table_qech$patient_visit_date = as.Date(viral_load_data_table_qech$patient_visit_date, "%Y-%m-%d %T")
+
+viral_load_data_table_qech$time_months = interval(
+  viral_load_data_table_qech$patient_ART_start_date,
+  viral_load_data_table_qech$patient_visit_date
+) %/% months(1)
+
+months_until_first_vl = viral_load_data_table_qech %>% group_by(patient_id, patient_ART_start_date) %>% slice(1)
+months_until_first_vl$plausible = ifelse((months_until_first_vl$time_months >= 6 & months_until_first_vl$time_months <= 12), "Plausible","Not Plausible")
+
+patients_with_plausible_vl_timeframe = months_until_first_vl %>% filter(time_months == "Plausible") %>% nrow()
+
+#  #check for patients with two or more viral load results on the same day that are different and flag these as "Not Plausible"
+#
+viral_load_data_table_qech = mutate(viral_load_data_table_qech, vrl_day_plausible =
+                                    "Not Plausible")
+#remove NAs from table before looping
+viral_load_data_table_qech = viral_load_data_table_qech %>% na.omit(.)
+
+
+for (i in 1:(nrow(viral_load_data_table_qech) - 1))
+{
+  for (j in (i + 1):(nrow(viral_load_data_table_qech)))
   {
-   for (j in (i + 1):(nrow(viral_load_data_table_lh)))   
+    if ((viral_load_data_table_qech$patient_id[i] == viral_load_data_table_qech$patient_id[j]) &
+        (
+          viral_load_data_table_qech$patient_visit_date[i] == viral_load_data_table_qech$patient_visit_date[j]
+        ))
     {
-      if((viral_load_data_table_lh$patient_id[i] == viral_load_data_table_lh$patient_id[j]) & (viral_load_data_table_lh$patient_visit_date[i] == viral_load_data_table_lh$patient_visit_date[j]))
-          {
-            viral_load_data_table_lh$vrl_day_plausible[i] = "Plausiblei"
-            viral_load_data_table_lh$vrl_day_plausible[j] = "Plausiblej"
-          }
-     }
-    print(i)
-   }
-      
-  #count number of records that do not have a viral load test date as not complete. 
-  #count records with test dates earlier than 2014-01-01 as not accurate. Avoid double counting.
-  
+      viral_load_data_table_qech$vrl_day_plausible[i] = "Plausible"
+      viral_load_data_table_qech$vrl_day_plausible[j] = "Plausible"
+    }
+  }
+  print(i)
+}
+#count number of records that do not have a viral load test date as not complete.
+#count records with test dates earlier than 2014-01-01 as not accurate. Avoid double counting.
+
+number_of_plausible_viral_loads_day_results = viral_load_data_table_qech %>% filter(vrl_day_plausible == "Plausible") %>% nrow()
+
+number_of_plausible_viral_loads = number_of_plausible_viral_loads_day_results + patients_with_plausible_vl_timeframe
+
+proportion_of_plausible_vl = number_of_plausible_viral_loads / number_of_complete_viral_loads * 100
+
+#Build plausibility table to be used to display plausible results out of the complete results
+
+Variable_Names = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescription Made","Drug Adherence")
+ 
+Numerators = c(number_of_plausible_addresses,number_of_plausible_phone_numbers,number_of_plausible_weight_observations,number_of_plausible_viral_loads,number_of_plausible_prescriptions,number_of_patients_with_plausible_adherence)
+ 
+Denominators = c(number_of_complete_addresses,number_of_complete_phone_numbers, number_of_complete_weight_observations,number_of_complete_viral_loads,number_of_complete_prescriptions,number_of_patient_adherence_visits)
+
+Proportions = c(proportion_of_palusible_addresses,proportion_of_all_plausible_numbers,proportion_plausible_weights,proportion_of_plausible_vl,prescription_plausibility_proportion,proportion_plausible_adherence)
+ 
+plausibility_table = data.frame(Variable_Names,Numerators,Denominators,Proportions, stringsAsFactors = FALSE)
+
+
+plausibility_table$Numerators = as.numeric(plausibility_table$Numerators)
+plausibility_table$Denominators = as.numeric(plausibility_table$Denominators)
+plausibility_table$Proportions = as.numeric(plausibility_table$Proportions)
+
+
   
 ```
+
+### Results
+
+*Completeness Tables
+
+*Graph checking the completeness of address components. A complete address should have all components. 
+
+*Plausibility Tables
+
+
+```{r display_results}
+
+
+
+
+kable(b, caption = "Table 1: Gender and Age by Health Facility Types of All Study Records", col.names = NA)
+
+
+
+kable(completeness_table, caption = "Completeness of Documented Patient Records at a Selected ART Clinic",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
+
+kable(all_healthfacility_completeness_table, caption = "Completeness of Documented Patient Records at Selected ART Clinics",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
+ 
+kable(a, caption = "Gender, Age by Completeness of Physical Address of All Health Facilities")
+
+
+
+kable(c, caption = "Gender, Age, Health Faclity Type Records by Completeness of Physical Address")
+
+
+
+ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type)
+
+
+kable(plausibility_table, caption = "Plausibility of Complete Patient Record Variables at a Selected ART Clinic in Malawi", digits = 2)
+
+
+```
+
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
