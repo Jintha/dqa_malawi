@@ -221,11 +221,16 @@ proportion_all_complete_weight_documentation
 #Prescription
 #Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denomina"tor where the expectation is a single value for each day.
  
-total_number_of_prescriptions = drugs_data_table_qech %>% nrow()
+total_number_of_prescriptions =  1 #drugs_data_table_qech %>% nrow()
+total_number_of_all_prescriptions = 1 #all_health_facility_drugs %>% nrow()
 #Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
  
-number_of_complete_prescriptions = drugs_data_table_qech %>% filter(quantity != "NULL") %>% nrow() # NULL records indicate that the prescription was not filled. We take only complete prescriptions here.
+number_of_complete_prescriptions = 1 #drugs_data_table_qech %>% filter(quantity != "NULL") %>% nrow() # NULL 
+number_of_all_complete_prescriptions = 1 #all_health_facility_drugs %>% filter(quantity != "NULL") %>% nrow() # NULL
+#records indicate that the prescription was not filled. We take only complete prescriptions here.
 prescription_completeness_proportion = number_of_complete_prescriptions / total_number_of_prescriptions * 100
+
+all_prescription_completeness_proportion = number_of_all_complete_prescriptions / total_number_of_all_prescriptions * 100
 prescription_completeness_proportion
  
 #Adherence
@@ -286,11 +291,11 @@ completeness_table$Proportions = as.numeric(completeness_table$Proportions)
 # Completeness Table for All Health Facilities
 variable_names_all = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescriptions Made","Drug Adherence")
 
-numerators_all = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,number_of_all_complete_viral_loads,"0",number_of_all_patients_with_complete_adherence)
+numerators_all = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,number_of_all_complete_viral_loads,number_of_all_complete_prescriptions,number_of_all_patients_with_complete_adherence)
 
-denominators_all = c(total_number_of_all_patients,total_number_of_all_patients,all_total_number_of_patient_visits,total_number_vl_all_patients,"0",number_of_all_patient_adherence_visits)
+denominators_all = c(total_number_of_all_patients,total_number_of_all_patients,all_total_number_of_patient_visits,total_number_vl_all_patients,total_number_of_all_prescriptions,number_of_all_patient_adherence_visits)
 
-proportions_all = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_all_complete_weight_documentation,proportion_of_all_complete_vl,"0",all_proportion_adherence)
+proportions_all = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_all_complete_weight_documentation,proportion_of_all_complete_vl,all_prescription_completeness_proportion,all_proportion_adherence)
  
 all_healthfacility_completeness_table = data.frame(variable_names_all,numerators_all,denominators_all,proportions_all, stringsAsFactors = FALSE)
  
@@ -426,9 +431,9 @@ number_of_plausible_addresses = plausible_physical_address(id_data_table_qech) %
 
 number_of_all_plausible_addresses = plausible_physical_address(all_health_facility_addresses) %>% filter(plausible_address == "Plausible") %>% nrow()
 
-proportion_of_palusible_addresses = number_of_plausible_addresses / number_of_complete_addresses * 100
+proportion_of_plausible_addresses = number_of_plausible_addresses / number_of_complete_addresses * 100
 
-proportion_of_all_palusible_addresses = number_of_all_plausible_addresses / number_of_all_complete_addresses * 100
+proportion_of_all_plausible_addresses = number_of_all_plausible_addresses / number_of_all_complete_addresses * 100
 
 #
 
@@ -451,15 +456,23 @@ proportion_of_all_plausible_numbers = number_of_all_plausible_phone_numbers / nu
 # Plausible Weight Values
 number_of_plausible_weight_observations = 1
 proportion_plausible_weights = number_of_plausible_weight_observations/number_of_complete_weight_observations * 100
+number_of_all_plausible_weight_observations = 1
+proportion_all_plausible_weights = number_of_all_plausible_weight_observations/all_number_of_complete_weight_observations * 100
+
 #Plausible Drugs
 
 number_of_plausible_prescriptions = 1
 prescription_plausibility_proportion = number_of_plausible_prescriptions / number_of_complete_prescriptions *100
+number_of_all_plausible_prescriptions = 1
+all_prescription_plausibility_proportion = number_of_all_plausible_prescriptions /  *100
+
 
 #Plausible Adherence
 #
 number_of_patients_with_plausible_adherence = 1
+number_of_all_patients_with_plausible_adherence = 1
 proportion_plausible_adherence = number_of_patients_with_plausible_adherence / number_of_patients_with_complete_adherence * 100
+proportion_all_plausible_adherence = number_of_all_patients_with_plausible_adherence / number_of_all_patients_with_complete_adherence * 100
 
 #Plausible Viral load
 #identify patients with more than two viral load
@@ -469,47 +482,78 @@ proportion_plausible_adherence = number_of_patients_with_plausible_adherence / n
 viral_load_data_table_qech$patient_ART_start_date = as.Date(viral_load_data_table_qech$patient_ART_start_date, "%Y-%m-%d")
 viral_load_data_table_qech$patient_visit_date = as.Date(viral_load_data_table_qech$patient_visit_date, "%Y-%m-%d %T")
 
+all_health_facility_vl$ART_start_date  = as.Date(all_health_facility_vl$ART_start_date, "%Y-%m-%d")
+all_health_facility_vl$patient_visit_date  = as.Date(all_health_facility_vl$patient_visit_date, "%Y-%m-%d %T")
+
+
 viral_load_data_table_qech$time_months = interval(
   viral_load_data_table_qech$patient_ART_start_date,
   viral_load_data_table_qech$patient_visit_date
 ) %/% months(1)
 
+
+all_health_facility_vl$time_months = interval(
+  all_health_facility_vl$ART_start_date,
+  all_health_facility_vl$patient_visit_date
+) %/% months(1)
+
+
+
 months_until_first_vl = viral_load_data_table_qech %>% group_by(patient_id, patient_ART_start_date) %>% slice(1)
 months_until_first_vl$plausible = ifelse((months_until_first_vl$time_months >= 6 & months_until_first_vl$time_months <= 12), "Plausible","Not Plausible")
 
+all_months_until_first_vl = all_health_facility_vl %>% group_by(patient_id, ART_start_date) %>% slice(1)
+all_months_until_first_vl$plausible = ifelse((all_months_until_first_vl$time_months >= 6 & all_months_until_first_vl$time_months <= 12), "Plausible","Not Plausible")
+
+
+
 patients_with_plausible_vl_timeframe = months_until_first_vl %>% filter(time_months == "Plausible") %>% nrow()
+all_patients_with_plausible_vl_timeframe = all_months_until_first_vl %>% filter(time_months == "Plausible") %>% nrow()
 
 #  #check for patients with two or more viral load results on the same day that are different and flag these as "Not Plausible"
 #
 viral_load_data_table_qech = mutate(viral_load_data_table_qech, vrl_day_plausible =
                                     "Not Plausible")
+all_health_facility_vl = mutate(all_health_facility_vl, vrl_day_plausible =
+                                    "Not Plausible")
 #remove NAs from table before looping
 viral_load_data_table_qech = viral_load_data_table_qech %>% na.omit(.)
+all_health_facility_vl = all_health_facility_vl %>% na.omit
 
 
-for (i in 1:(nrow(viral_load_data_table_qech) - 1))
+plausible_viral_loads_day_results = function(viral_load_table){
+for (i in 1:(nrow(viral_load_table) - 1))
 {
-  for (j in (i + 1):(nrow(viral_load_data_table_qech)))
+  for (j in (i + 1):(nrow(viral_load_table)))
   {
-    if ((viral_load_data_table_qech$patient_id[i] == viral_load_data_table_qech$patient_id[j]) &
+    if ((viral_load_table$patient_id[i] == viral_load_table$patient_id[j]) &
         (
-          viral_load_data_table_qech$patient_visit_date[i] == viral_load_data_table_qech$patient_visit_date[j]
+          viral_load_table$patient_visit_date[i] == viral_load_table$patient_visit_date[j]
         ))
     {
-      viral_load_data_table_qech$vrl_day_plausible[i] = "Plausible"
-      viral_load_data_table_qech$vrl_day_plausible[j] = "Plausible"
+      viral_load_table$vrl_day_plausible[i] = "Plausible"
+      viral_load_table$vrl_day_plausible[j] = "Plausible"
     }
   }
   print(i)
 }
+return(viral_load_table) 
+}
+
 #count number of records that do not have a viral load test date as not complete.
 #count records with test dates earlier than 2014-01-01 as not accurate. Avoid double counting.
+viral_load_data_table_qech = plausible_viral_loads_day_results(viral_load_data_table_qech)
+all_health_facility_vl = plausible_viral_loads_day_results(all_health_facility_vl)
 
 number_of_plausible_viral_loads_day_results = viral_load_data_table_qech %>% filter(vrl_day_plausible == "Plausible") %>% nrow()
+all_number_of_plausible_viral_loads_day_results = viral_load_data_table_qech %>% filter(vrl_day_plausible == "Plausible") %>% nrow()
 
 number_of_plausible_viral_loads = number_of_plausible_viral_loads_day_results + patients_with_plausible_vl_timeframe
 
+number_of_all_plausible_viral_loads = all_number_of_plausible_viral_loads_day_results + all_patients_with_plausible_vl_timeframe
+
 proportion_of_plausible_vl = number_of_plausible_viral_loads / number_of_complete_viral_loads * 100
+proportion_of_all_plausible_vl = number_of_all_plausible_viral_loads / number_of_complete_viral_loads * 100
 
 #Build plausibility table to be used to display plausible results out of the complete results
 
@@ -527,6 +571,21 @@ plausibility_table = data.frame(Variable_Names,Numerators,Denominators,Proportio
 plausibility_table$Numerators = as.numeric(plausibility_table$Numerators)
 plausibility_table$Denominators = as.numeric(plausibility_table$Denominators)
 plausibility_table$Proportions = as.numeric(plausibility_table$Proportions)
+
+#Plausibility All Health Facilities
+#
+numerators_all_plausibility = c(number_of_all_plausible_addresses,number_of_all_plausible_phone_numbers,number_of_all_plausible_weight_observations,number_of_all_plausible_viral_loads,number_of_all_plausible_prescriptions,number_of_all_patients_with_plausible_adherence)
+ 
+denominators_all_plausibility = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,number_of_all_complete_viral_loads,number_of_all_complete_prescriptions,number_of_all_patient_adherence_visits)
+
+proportions_all_plausibility = c(proportion_of_all_plausible_addresses,proportion_of_all_plausible_numbers,proportion_all_plausible_weights,proportion_of_all_plausible_vl,all_prescription_plausibility_proportion,proportion_all_plausible_adherence)
+ 
+plausibility_table = data.frame(Variable_Names,Numerators,Denominators,Proportions, stringsAsFactors = FALSE)
+all_plausibility_table = data.frame(Variable_Names,numerators_all_plausibility,denominators_all_plausibility,proportions_all_plausibility, stringsAsFactors = FALSE)
+
+all_plausibility_table$Numerators = as.numeric(all_plausibility_table$Numerators)
+all_plausibility_table$Denominators = as.numeric(all_plausibility_table$Denominators)
+all_plausibility_table$Proportions = as.numeric(all_plausibility_table$Proportions)
 
 
   
@@ -566,6 +625,7 @@ ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), 
 
 
 kable(plausibility_table, caption = "Plausibility of Complete Patient Record Variables at a Selected ART Clinic in Malawi", digits = 2)
+kable(all_plausibility_table, caption = "Plausibility of Complete Patient Record Variables at a Selected ART Clinic in Malawi", digits = 2)
 
 
 ```
