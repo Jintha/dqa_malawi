@@ -54,15 +54,13 @@ patient_address_district_nkhatabay_df = fread("~/Box Sync/quantitative_data/pati
 
 patient_address_district_dedza_df = fread("~/Box Sync/quantitative_data/patient_address/District/dedza_address.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Dedza") %>% mutate(unique_patient_id = paste("dz", patient_id, sep="_"))
 
-
-
-
 patient_address_tertiary_kch_df = fread("~/Box Sync/quantitative_data/patient_address/Tertiary/LH_address.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "KCH") %>% mutate(unique_patient_id = paste("kch", patient_id, sep="_"))
 
 patient_address_tertiary_qech_df = fread("~/Box Sync/quantitative_data/patient_address/Tertiary/qech_address.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "QECH") %>% mutate(unique_patient_id = paste("qech", patient_id, sep="_"))
 
 patient_address_tertiary_mch_df = fread("~/Box Sync/quantitative_data/patient_address/Tertiary/mzuzu_central_address.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "MCH") %>% mutate(unique_patient_id = paste("mch", patient_id, sep="_"))
 
+patient_address_tertiary_zch_df = fread("~/Box Sync/quantitative_data/patient_address/Tertiary/zomba_address.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "ZCH") %>% mutate(unique_patient_id = paste("zch", patient_id, sep="_"))
 
 patient_address_healthcenter_kawale_df = fread("~/Box Sync/quantitative_data/patient_address/Health Center/kawale_address.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Kawale")%>% mutate(unique_patient_id = paste("kaw", patient_id, sep="_"))
 
@@ -71,28 +69,28 @@ patient_address_healthcenter_limbe_df = fread("~/Box Sync/quantitative_data/pati
 patient_address_healthcenter_mapale_df = fread("~/Box Sync/quantitative_data/patient_address/Health Center/mzuzu_mapale_HC_addresses.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", patient_id, sep="_"))
 
 
-patient_weight_district_mangochi_df = fread("~/Box Sync/quantitative_data/patient_weight_height/District/mangochi_vitals.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Mangochi") %>% mutate(unique_patient_id = paste("mh", patient_id, sep="_"))
+patient_vitals_district_mangochi_df = fread("~/Box Sync/quantitative_data/patient_weight_height/District/mangochi_vitals.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Mangochi") %>% mutate(unique_patient_id = paste("mh", patient_id, sep="_"))
 
-patient_weight_district_nkhatabay_df = fread("~/Box Sync/quantitative_data/patient_weight_height/District/nkhatabay_vitals.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Nkhatabay") %>% mutate(unique_patient_id = paste("nb", patient_id, sep="_"))
+patient_vitals_district_nkhatabay_df = fread("~/Box Sync/quantitative_data/patient_weight_height/District/nkhatabay_vitals.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Nkhatabay") %>% mutate(unique_patient_id = paste("nb", patient_id, sep="_"))
 
-patient_weight_district_dedza_df = fread("~/Box Sync/quantitative_data/patient_weight_height/District/dedza_vitals.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Dedza") %>% mutate(unique_patient_id = paste("dz", patient_id, sep="_"))
-
-
-patient_weight_tertiary_qech_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/qech_vitals.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "QECH") %>% mutate(unique_patient_id = paste("qech", patient_id, sep="_"))
+patient_vitals_district_dedza_df = fread("~/Box Sync/quantitative_data/patient_weight_height/District/dedza_vitals.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Dedza") %>% mutate(unique_patient_id = paste("dz", patient_id, sep="_"))
 
 
-patient_weight_tertiary_kch_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/LH_vitals.csv")%>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "KCH") %>% mutate(unique_patient_id = paste("kch", patient_id, sep="_"))
-
-patient_weight_tertiary_mch_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/mzuzu_central.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "MCH") %>% mutate(unique_patient_id = paste("mch", patient_id, sep="_"))
-
-patient_weight_tertiary_zch_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/zch_vitals.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "ZCH") %>% mutate(unique_patient_id = paste("zch", patient_id, sep="_"))
+patient_vitals_tertiary_qech_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/qech_vitals.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "QECH") %>% mutate(unique_patient_id = paste("qech", patient_id, sep="_"))
 
 
-patient_weight_healthcenter_limbe_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Health Center/limbe_vitals.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Limbe") %>% mutate(unique_patient_id = paste("lim", patient_id, sep="_"))
+patient_vitals_tertiary_kch_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/LH_vitals.csv")%>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "KCH") %>% mutate(unique_patient_id = paste("kch", patient_id, sep="_"))
 
-patient_weight_healthcenter_kawale_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Health Center/kawale_vitals.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Kawale") %>% mutate(unique_patient_id = paste("kaw", patient_id, sep="_"))
+patient_vitals_tertiary_mch_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/mzuzu_central.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "MCH") %>% mutate(unique_patient_id = paste("mch", patient_id, sep="_"))
 
-patient_weight_healthcenter_mzuzu_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Health Center/mzuzu_mapale_vitals.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", patient_id, sep="_"))
+patient_vitals_tertiary_zch_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/zch_vitals.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "ZCH") %>% mutate(unique_patient_id = paste("zch", patient_id, sep="_"))
+
+
+patient_vitals_healthcenter_limbe_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Health Center/limbe_vitals.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Limbe") %>% mutate(unique_patient_id = paste("lim", patient_id, sep="_"))
+
+patient_vitals_healthcenter_kawale_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Health Center/kawale_vitals.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Kawale") %>% mutate(unique_patient_id = paste("kaw", patient_id, sep="_"))
+
+patient_vitals_healthcenter_mzuzu_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Health Center/mzuzu_mapale_vitals.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", patient_id, sep="_"))
 
 
 
@@ -113,25 +111,32 @@ patient_drugs_tertiary_mch_df = fread("~/Box Sync/quantitative_data/patient_drug
 
 
 
-patient_drugs_healthcenter_limbe_df = fread("~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/Limbe_query_drugs2.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Limbe") %>% mutate(unique_patient_id = paste("lim", patient_id, sep="_"))
+patient_drugs_healthcenter_limbe_df = fread("~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/limbe_drugs.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Limbe") %>% mutate(unique_patient_id = paste("lim", patient_id, sep="_"))
 
-patient_drugs_healthcenter_kawale_df = fread("~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/kawale_query_drugs2.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Kawale") %>% mutate(unique_patient_id = paste("kaw", patient_id, sep="_"))
+patient_drugs_healthcenter_kawale_df = fread("~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/kawale_drugs.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Kawale") %>% mutate(unique_patient_id = paste("kaw", patient_id, sep="_"))
 
-patient_drugs_healthcenter_mzuzu_df = fread("~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/mzuzu_mapale_query_drugs2..csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", patient_id, sep="_"))
+patient_drugs_healthcenter_mzuzu_df = fread("~/Box Sync/quantitative_data/patient_drugs_taken/Health Center/mapale_drugs.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", patient_id, sep="_"))
 
 
 patient_drug_adherence_district_nkhatabay_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/District/nkhatabay_adherence.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Nkhatabay") %>% mutate(unique_patient_id = paste("nb", person_id, sep="_"))
-#patient_drug_adherence_files_district_mangochi = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/District/", pattern="*.csv", full.names=TRUE)
-#patient_drug_adherence_files_district_dedza = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/District/", pattern="*.csv", full.names=TRUE)
+
+patient_drug_adherence_district_mangochi_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/District/mangochi_adherence.csv") %>% mutate(health_facility_name = "Mangochi") %>% mutate(unique_patient_id = paste("mh", person_id, sep="_"))
+
+patient_drug_adherence_district_dedza_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/District/dedza_adherence.csv") %>% mutate(health_facility_name = "Dedza") %>% mutate(unique_patient_id = paste("dz", person_id, sep="_"))
 
 patient_drug_adherence_tertiary_qech_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/qech_adherence.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "QECH") %>% mutate(unique_patient_id = paste("qech", person_id, sep="_"))
-patient_drug_adherence_tertiary_zch_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/zch_adherence.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "ZCH") %>% mutate(unique_patient_id = paste("zch", person_id, sep="_"))
-#patient_drug_adherence_files_tertiary_kch = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/", pattern="*.csv", full.names=TRUE)
-patient_drug_adherence_tertiary_mch_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/mzuzu_central_adherence.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "MCH") %>% mutate(unique_patient_id = paste("mch", person_id, sep="_"))
 
-patient_drug_adherence_healthcenter_kawale_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Health Center/kawale_query_adherence2.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Kawale") %>% mutate(unique_patient_id = paste("kaw", patient_id, sep ="_"))
-#patient_drug_adherence_files_healthcenter_limbe = list.files(path="~/Box Sync/quantitative_data/patient_drug_adherence/Health Center/", pattern="*.csv", full.names=TRUE)
-patient_drug_adherence_healthcenter_mzuzu_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Health Center/mzuzu_mapale_HC_adherence.csv")%>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", person_id, sep="_"))
+patient_drug_adherence_tertiary_zch_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/zch_adherence.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "ZCH") %>% mutate(unique_patient_id = paste("zch", person_id, sep="_"))
+
+patient_drug_adherence_tertiary_kch_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/LH_adherence.csv") %>% mutate(health_facility_name = "KCH") %>% mutate(unique_patient_id = paste("kch", person_id, sep="_"))
+
+patient_drug_adherence_tertiary_mch_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/mzuzu_central_adherence.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "MCH") %>% mutate(unique_patient_id = paste("mch", person_id, sep = "_"))
+
+patient_drug_adherence_healthcenter_kawale_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Health Center/kawale_adherence.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Kawale") %>% mutate(unique_patient_id = paste("kaw", person_id, sep ="_"))
+
+patient_drug_adherence_healthcenter_limbe =  fread("~/Box Sync/quantitative_data/patient_drug_adherence/Health Center/limbe_adherence.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Limbe") %>% mutate(unique_patient_id = paste("lim", person_id, sep ="_"))
+
+patient_drug_adherence_healthcenter_mzuzu_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Health Center/mapale_adherence.csv")%>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", person_id, sep="_"))
 
 
 
@@ -155,105 +160,92 @@ names(patient_vl_tertiary_qech_df)[names(patient_vl_tertiary_qech_df) == "patien
 
 #patient_vl_files_health_center_mzuzu = list.files(path="~/Box Sync/quantitative_data/hiv_viral_load/Health Center/", pattern="*.csv", full.names=TRUE)
 
-#Build the dataframes for each file type.
-#Read filename. Create field that contains the filename. Classify hospital type. Combine datasets.
-
-
-#Build tables by health facility type for patient address
-
-
-
-#Build tables for patient weight
-
-
-#Build tables for patient adherence
-
-
-#Build drugs dispensed files
-
-
-#Build patient viral load files
-
-
-# patient_vl_healthcenter =
-#   patient_vl_files_health_center %>% 
-#   map_df(~read_plus_health_center(.))
-# patient_vl_healthcenter = patient_vl_healthcenter %>%  mutate_all(.,as.character)
-
 #combine data frames
-patient_address_list = list(patient_address_healthcenter_kawale_df,patient_address_healthcenter_limbe_df,patient_address_healthcenter_mapale_df,patient_address_district_mangochi_df,patient_address_district_dedza_df,patient_address_district_nkhatabay_df,patient_address_tertiary_kch_df,patient_address_tertiary_mch_df,patient_address_tertiary_qech_df)
+patient_address_list = list(patient_address_healthcenter_kawale_df,patient_address_healthcenter_limbe_df,patient_address_healthcenter_mapale_df,patient_address_district_mangochi_df,patient_address_district_dedza_df,patient_address_district_nkhatabay_df,patient_address_tertiary_kch_df,patient_address_tertiary_mch_df,patient_address_tertiary_qech_df,patient_address_tertiary_zch_df)
 
-patient_weight_list = list(patient_weight_healthcenter_mzuzu_df,patient_weight_healthcenter_kawale_df,patient_weight_healthcenter_limbe_df,patient_weight_tertiary_mch_df,patient_weight_tertiary_qech_df,patient_weight_tertiary_zch_df,patient_weight_tertiary_kch_df,patient_weight_district_dedza_df,patient_weight_district_mangochi_df,patient_weight_district_nkhatabay_df)
+patient_vitals_list = list(patient_vitals_healthcenter_mzuzu_df,patient_vitals_healthcenter_kawale_df,patient_vitals_healthcenter_limbe_df,patient_vitals_tertiary_mch_df,patient_vitals_tertiary_qech_df,patient_vitals_tertiary_zch_df,patient_vitals_tertiary_kch_df,patient_vitals_district_dedza_df,patient_vitals_district_mangochi_df,patient_vitals_district_nkhatabay_df)
 
-patient_adherence_list = list(patient_drug_adherence_district_nkhatabay_df,patient_drug_adherence_healthcenter_kawale_df,patient_drug_adherence_healthcenter_mzuzu_df,patient_drug_adherence_files_tertiary_qech,patient_drug_adherence_tertiary_mch_df,patient_drug_adherence_tertiary_zch_df) # healthcenter data frames are off
+patient_adherence_list = list(patient_drug_adherence_district_nkhatabay_df,patient_drug_adherence_healthcenter_kawale_df,patient_drug_adherence_healthcenter_mzuzu_df,patient_drug_adherence_tertiary_qech_df,patient_drug_adherence_tertiary_mch_df,patient_drug_adherence_tertiary_zch_df) # healthcenter data frames are off
 
 patient_drugs_list = list(patient_drugs_healthcenter_kawale_df,patient_drugs_healthcenter_limbe_df,patient_drugs_healthcenter_mzuzu_df,patient_drugs_district_dedza_df,patient_drugs_district_nkhatabay_df,patient_drugs_district_mangochi_df,patient_drugs_tertiary_kch_df,patient_drugs_tertiary_mch_df,patient_drugs_tertiary_qech_df,patient_drugs_tertiary_zch_df)  # all data frames are off.
 
 patient_vl_list = list(patient_vl_health_center_kawale_df,patient_vl_files_health_center_limbe ,patient_vl_tertiary_mch_df,patient_vl_tertiary_kch_df,patient_vl_tertiary_qech_df,patient_vl_district_nkhatabay_df,patient_vl_district_dedza_df,patient_vl_district_mangochi_df)
 
 
-
-
-
-
 all_health_facility_addresses = rbindlist(patient_address_list, use.names=TRUE)
-all_health_facility_weights = rbindlist(patient_weight_list, use.names = TRUE)
+all_health_facility_vitals = rbindlist(patient_vitals_list, use.names = TRUE)
 all_health_facility_adherence = rbindlist(patient_adherence_list,use.names = TRUE, fill = TRUE)
 all_health_facility_drugs = rbindlist(patient_drugs_list, use.names = TRUE, fill = TRUE)
 all_health_facility_vl = rbindlist(patient_vl_list, use.names = TRUE,fill=TRUE)
 
+#Denominators
+#Total number of patients alive during the study period. Select all patients that are alive during the study period
+total_number_of_all_patients = all_health_facility_addresses %>% select(unique_patient_id) %>% unique.data.frame() %>% nrow()
 
+#Patient visits. Currently using patient visits because that is the highest encounter type.This will be replaced by HIV reception encounter since some visits are guardian visits where the patient is not present and hence will not have a weight encounter.
+all_health_facility_vitals$encounter_datetime = as.Date(all_health_facility_vitals$encounter_datetime) 
+all_total_number_of_patient_visits = all_health_facility_vitals %>% filter((encounter_datetime) > "2017-01-01") %>%  group_by(unique_patient_id,encounter_datetime) %>% unique.data.frame() %>% nrow()
 
-#QECH dataset
-
-#setwd("~/Dropbox/dissertation_data_analysis/")
-id_data_table_qech           = read.csv("~/Box Sync/quantitative_data/patient_address/Tertiary/qech_address.csv", stringsAsFactors = FALSE)
-drugs_data_table_qech        = read.csv("~/Box Sync/quantitative_data/patient_drugs_taken/Tertiary/qech_query_drugs2.csv", stringsAsFactors = FALSE)
-bmi_data_table_qech   = read.csv("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/qech_vitals.csv", stringsAsFactors = FALSE)
-adherence_data_table_qech     = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Tertiary/qech_adherence.csv")
-viral_load_data_table_qech = read.csv("~/Box Sync/quantitative_data/hiv_viral_load/Tertiary/qech_VL.csv", stringsAsFactors = FALSE)
-
-
-#Completeness Proportions
-#Patient tracking variables
-#Total Number of patients
-#Qech
- 
  #completeness
  #Patient retention and health tracking
- #Denominator is all patient visits during the study period (January 2017 to December 2018). At minimum, each patient should have their vital signs measured when they visit the clinic. Therefore the denominator will be the number of encounters in the weight table.
+ #Denominator is all patient visits during the study period (January 2017 to December 2018). At minimum, each patient should have their vital signs measured when they visit the clinic. Therefore the denominator will be the number of encounters in the weight table for now pending the change above. 
 
 #Fix gender variable for address table.
-id_data_table_qech$gender = ifelse (id_data_table_qech$gender == "F" | id_data_table_qech$gender == "Female","Female","Male")
 all_health_facility_addresses$gender = ifelse (all_health_facility_addresses$gender == "F" | all_health_facility_addresses$gender == "Female","Female","Male")
-
-
 
 #Physical Address All Health Facilities
 all_health_facility_addresses$complete_address =  ifelse(all_health_facility_addresses$district !="NULL" & all_health_facility_addresses$ta != "NULL" &     all_health_facility_addresses$village != "NULL", "Complete","Incomplete")
 number_of_all_complete_addresses = all_health_facility_addresses %>% filter(complete_address =="Complete") %>% nrow()
-total_number_of_all_patients = all_health_facility_addresses %>% nrow()
 all_address_completeness_proportion = number_of_all_complete_addresses / total_number_of_all_patients * 100
 
 #Phone number
+all_health_facility_addresses$phone_number =  ifelse(all_health_facility_addresses$cell_number !="NULL" & (all_health_facility_addresses$cell_number != "Unknown" |   all_health_facility_addresses$cell_number != "N/A"), "Complete","Incomplete")
 
 number_of_all_complete_phone_numbers = all_health_facility_addresses %>% filter(phone_number =="Complete") %>% nrow()
-phone_number_proportion = number_of_complete_phone_numbers/total_number_of_patients*100
 all_phone_number_proportion = number_of_all_complete_phone_numbers/total_number_of_all_patients*100
-phone_number_proportion
-
 
 #Weight observation for BMI calculation
 
-all_health_facility_weights$complete_weight = ifelse(all_health_facility_weights$weight != "NULL", "Complete","Incomplete") 
-all_number_of_complete_weight_observations = all_health_facility_weights %>% filter(complete_weight == "Complete") %>% nrow()
+all_health_facility_vitals$complete_weight = ifelse(all_health_facility_vitals$weight != "NULL", "Complete","Incomplete") 
+all_number_of_complete_weight_observations = all_health_facility_vitals %>% filter(complete_weight == "Complete") %>% nrow()
 proportion_all_complete_weight_documentation = all_number_of_complete_weight_observations / all_total_number_of_patient_visits * 100
 proportion_all_complete_weight_documentation
   
+#Height observation for BMI calculation. The assumption is that every patient should have one height observation.
 
-#Prescription
+all_number_of_height_observations = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(height != "NULL") %>% group_by(unique_patient_id,health_facility_name) %>% slice(1) %>% nrow()
+proportion_of_all_height_observations = all_number_of_height_observations / total_number_of_all_patients * 100
+
+#Prescription. Probably need the encounter id
 #Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denominator where the expectation is a single value for each day.
- 
+#Considering that the denominator is the number of patient visits at a health facility. I will first of all take all the patient visits that have a drug prescription.
+
+prescription_encounters = inner_join(all_health_facility_vitals,all_health_facility_drugs, by = "unique_patient_id") %>% group_by(all_health_facility_vitals$unique_patient_id,all_health_facility_vitals$health_facility_name) %>% slice(1)
+
+prescription_encounters_b = all_health_facility_drugs %>% filter(date(start_date_new) >= "2017-01-01") %>% group_by(unique_patient_id) %>% slice(1)
+
+update_names = function(drug_table){
+   output_drugs = character(nrow(drug_table))
+   i = 1
+   names_in_drug_column = drug_table$name 
+   name_placed_in_quantity = drug_table$quantity
+   while(i < nrow(drug_table)){
+   test_evening = grepl("Evening",drug_table[i,]$name)
+   if((test_evening == TRUE)){
+       output[i] = drug_table[i,]$quantity 
+       
+  print("evening")
+  }else{
+       output[i] = drug_table[i,]$name
+   print("madzulo")    
+  }
+  i = i+1
+}
+  return((output))
+}
+
+
+prescription_encounters_c = (update_names(prescription_encounters_b[101:200,]))
 
 total_number_of_all_prescriptions = 1 #all_health_facility_drugs %>% nrow()
 #Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
@@ -261,10 +253,9 @@ total_number_of_all_prescriptions = 1 #all_health_facility_drugs %>% nrow()
 
 number_of_all_complete_prescriptions = 1 #all_health_facility_drugs %>% filter(quantity != "NULL") %>% nrow() # NULL
 #records indicate that the prescription was not filled. We take only complete prescriptions here.
-prescription_completeness_proportion = number_of_complete_prescriptions / total_number_of_prescriptions * 100
 
 all_prescription_completeness_proportion = number_of_all_complete_prescriptions / total_number_of_all_prescriptions * 100
-prescription_completeness_proportion
+
  
 #Adherence
 #Revising the original tables here from source since they were corrupted.
@@ -314,6 +305,19 @@ all_health_facility_addresses$health_facility_name = factor(all_health_facility_
 all_health_facility_addresses$gender = factor(all_health_facility_addresses$gender)
 all_health_facility_addresses$complete_address = factor(all_health_facility_addresses$complete_address)
 
+all_health_facility_vitals$health_facility_type = factor(all_health_facility_vitals$health_facility_type)
+all_health_facility_vitals$health_facility_name = factor(all_health_facility_vitals$health_facility_name)
+
+all_health_facility_vl$health_facility_type = factor(all_health_facility_vl$health_facility_type)
+all_health_facility_vl$health_facility_name = factor(all_health_facility_vl$health_facility_name)
+
+all_health_facility_adherence$health_facility_type = factor(all_health_facility_addresses$health_facility_type)
+all_health_facility_adherence$health_facility_name = factor(all_health_facility_addresses$health_facility_name)
+
+all_health_facility_drugs$health_facility_type = factor(all_health_facility_drugs$health_facility_type)
+all_health_facility_drugs$health_facility_name = factor(all_health_facility_drugs$health_facility_name)
+
+
 ###
 
 # cd$address_value = ifelse(cd$address_value == "Other"), "Other", cd$address_value))
@@ -358,7 +362,7 @@ d = table1(~gender + age|health_facility_name, data = all_health_facility_addres
 #   
 #   by_month_all_encounters = bmi_data_table %>% group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count = n())
 #   
-#   by_month_weights_documented = bmi_data_table %>%filter(weight > 0) %>%  group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_weights = n())
+#   by_month_vitals_documented = bmi_data_table %>%filter(weight > 0) %>%  group_by(yr = year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_vitals = n())
 #   
 #   by_month_heights_documented = bmi_data_table %>% filter(height > 0) %>%  group_by(yr =year(new_encounter_date),mn = month(new_encounter_date)) %>% dplyr::summarise(count_heights = n())
 #   
@@ -370,9 +374,9 @@ d = table1(~gender + age|health_facility_name, data = all_health_facility_addres
 # #After that then plot the graphs on one layer with different types of observations
 # #Should result in 3 line geoms. Expectation is that weight should be at each visit.
 # 
-#   combined_observations  = cbind(by_month_all_encounters,by_month_weights_documented) %>% cbind(.,by_month_heights_documented) %>% select(yr,mn,count,count_heights,count_weights)
+#   combined_observations  = cbind(by_month_all_encounters,by_month_vitals_documented) %>% cbind(.,by_month_heights_documented) %>% select(yr,mn,count,count_heights,count_vitals)
 #   
-#   ggplot(combined_observations) + geom_line(aes(mn,count), size=1, color = "yellow") + geom_line(aes(mn,count_weights), size = 1, color = "blue")
+#   ggplot(combined_observations) + geom_line(aes(mn,count), size=1, color = "yellow") + geom_line(aes(mn,count_vitals), size = 1, color = "blue")
 #   
 #   
 #   #ggplot(bmi_data_table, aes(x = new_encounter_date)) + geom_freqpoly(binwidth=1)
