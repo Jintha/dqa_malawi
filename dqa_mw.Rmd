@@ -184,7 +184,10 @@ total_number_of_all_patients = all_health_facility_addresses %>% select(unique_p
 
 #Patient visits. Currently using patient visits because that is the highest encounter type.This will be replaced by HIV reception encounter since some visits are guardian visits where the patient is not present and hence will not have a weight encounter.
 all_health_facility_vitals$encounter_datetime = as.Date(all_health_facility_vitals$encounter_datetime) 
-all_total_number_of_patient_visits = all_health_facility_vitals %>% filter((encounter_datetime) > "2017-01-01") %>%  group_by(unique_patient_id,encounter_datetime) %>% unique.data.frame() %>% nrow()
+
+study_patient_visits = all_health_facility_vitals %>% filter((encounter_datetime) > "2017-01-01") %>%  group_by(unique_patient_id,encounter_datetime) %>% unique.data.frame() 
+
+total_number_of_patient_visits = nrow(study_patient_visits)
 
  #completeness
  #Patient retention and health tracking
@@ -219,33 +222,48 @@ proportion_of_all_height_observations = all_number_of_height_observations / tota
 #Prescription. Probably need the encounter id
 #Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denominator where the expectation is a single value for each day.
 #Considering that the denominator is the number of patient visits at a health facility. I will first of all take all the patient visits that have a drug prescription.
+all_health_facility_drugs$start_date_new = as.Date(all_health_facility_drugs$start_date,"%m/%d/%y")
 
-prescription_encounters = inner_join(all_health_facility_vitals,all_health_facility_drugs, by = "unique_patient_id") %>% group_by(all_health_facility_vitals$unique_patient_id,all_health_facility_vitals$health_facility_name) %>% slice(1)
+prescription_encounter_observations = all_health_facility_drugs %>% filter(date(start_date_new) >= "2017-01-01") %>%  inner_join(.,study_patient_visits, by = "unique_patient_id")   
 
-prescription_encounters_b = all_health_facility_drugs %>% filter(date(start_date_new) >= "2017-01-01") %>% group_by(unique_patient_id) %>% slice(1)
+
+
+prescription_encounters = prescription_encounter_observations %>%  group_by(unique_patient_id,health_facility_name.x) %>%  slice(1)
+
+#prescription_encounters_b = all_health_facility_drugs %>% filter(date(start_date_new) >= "2017-01-01") %>% group_by(unique_patient_id) %>% slice(1)
 
 update_names = function(drug_table){
-   output_drugs = character(nrow(drug_table))
    i = 1
-   names_in_drug_column = drug_table$name 
-   name_placed_in_quantity = drug_table$quantity
+   output_drugs = character(nrow(drug_table))
+   output_quantity = character(nrow(drug_table))
+   output_category = character(nrow(drug_table))
    while(i < nrow(drug_table)){
    test_evening = grepl("Evening",drug_table[i,]$name)
    if((test_evening == TRUE)){
-       output[i] = drug_table[i,]$quantity 
-       
+       output_drugs[i] = drug_table[i,]$quantity 
+       output_quantity[i] = drug_table[i,]$regimen_category
+       output_category[i] = drug_table[i,]$V8
   print("evening")
   }else{
-       output[i] = drug_table[i,]$name
+       output_drugs[i] = drug_table[i,]$name
+       output_quantity[i] = drug_table[i,]$quantity
+       output_category[i] = drug_table[i,]$regimen_category
    print("madzulo")    
   }
   i = i+1
 }
-  return((output))
+   drug_table$name = output_drugs
+   drug_table$quantity = output_quantity
+   drug_table$regimen_category = output_category
+   return(as.data.frame(drug_table))
 }
 
 
-prescription_encounters_c = (update_names(prescription_encounters_b[101:200,]))
+prescription_encounters = (update_names(prescription_encounters))
+
+#Calculate proportions of drug encounters among patient visits
+
+proportion_drug_encounters = (nrow(prescription_encounters) / total_number_of_patient_visits * 100)
 
 total_number_of_all_prescriptions = 1 #all_health_facility_drugs %>% nrow()
 #Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
@@ -258,9 +276,19 @@ all_prescription_completeness_proportion = number_of_all_complete_prescriptions 
 
  
 #Adherence
-#Revising the original tables here from source since they were corrupted.
+#This will be all patient visits that have an adherence encounter, since the patient visit is the denominator.
+
+all_health_facility_adherence$start_date_new = as.Date(all_health_facility_adherence$start_date, "%Y-%m-%d")
+
+adherence_encounter_observations = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>% group_by(unique_patient_id) 
+
+adherence_encounters = inner_join(adherence_encounter_observations,study_patient_visits, by = "unique_patient_id") %>% group_by(unique_patient_id,encounter_datetime) %>% slice(1)
+
+proportion_adherence_encounters = nrow(adherence_encounters) / total_number_of_patient_visits * 100
 
 all_health_facility_adherence = mutate(all_health_facility_adherence, complete_adherence = ifelse(adherence_in_percentage == "NULL", "Incomplete","Complete"))
+
+
  
 number_of_all_patients_with_complete_adherence = all_health_facility_adherence  %>% filter(complete_adherence == "Complete") %>% nrow()
 number_of_all_patient_adherence_visits = all_health_facility_adherence %>% nrow()
