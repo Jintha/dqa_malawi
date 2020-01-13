@@ -180,7 +180,9 @@ all_health_facility_vl = rbindlist(patient_vl_list, use.names = TRUE,fill=TRUE)
 
 #Denominators
 #Total number of patients alive during the study period. Select all patients that are alive during the study period
-total_number_of_all_patients = all_health_facility_addresses %>% select(unique_patient_id) %>% unique.data.frame() %>% nrow()
+
+all_study_patients = all_health_facility_addresses %>% select(unique_patient_id) %>% unique.data.frame()
+total_number_of_all_patients = nrow(all_study_patients)
 
 #Patient visits. Currently using patient visits because that is the highest encounter type.This will be replaced by HIV reception encounter since some visits are guardian visits where the patient is not present and hence will not have a weight encounter.
 all_health_facility_vitals$encounter_datetime = as.Date(all_health_facility_vitals$encounter_datetime) 
@@ -210,13 +212,26 @@ all_phone_number_proportion = number_of_all_complete_phone_numbers/total_number_
 #Weight observation for BMI calculation
 
 all_health_facility_vitals$complete_weight = ifelse(all_health_facility_vitals$weight != "NULL", "Complete","Incomplete") 
-all_number_of_complete_weight_observations = all_health_facility_vitals %>% filter(complete_weight == "Complete") %>% nrow()
+all_number_of_complete_weight_observations = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>%  filter(complete_weight == "Complete") %>% nrow()
+
+all_weight_encounters = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(weight != "NULL") %>% group_by(unique_patient_id,health_facility_name) %>% slice(1) 
+
+total_number_of_weight_visits = nrow(all_weight_encounters)
+
+proportion_weight_encounters = total_number_of_weight_visits / total_number_of_patient_visits *100
+  
 proportion_all_complete_weight_documentation = all_number_of_complete_weight_observations / all_total_number_of_patient_visits * 100
-proportion_all_complete_weight_documentation
+
+
   
 #Height observation for BMI calculation. The assumption is that every patient should have one height observation.
 
-all_number_of_height_observations = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(height != "NULL") %>% group_by(unique_patient_id,health_facility_name) %>% slice(1) %>% nrow()
+all_height_encounters = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(height != "NULL") %>% group_by(unique_patient_id,health_facility_name) %>% slice(1) 
+
+total_number_of_height_visits = nrow(all_height_encounters)
+
+proportion_height_encounters = total_number_of_height_visits / total_number_of_patient_visits *100
+
 proportion_of_all_height_observations = all_number_of_height_observations / total_number_of_all_patients * 100
 
 #Prescription. Probably need the encounter id
@@ -263,7 +278,9 @@ prescription_encounters = (update_names(prescription_encounters))
 
 #Calculate proportions of drug encounters among patient visits
 
-proportion_drug_encounters = (nrow(prescription_encounters) / total_number_of_patient_visits * 100)
+number_of_prescription_encounters = (nrow(prescription_encounters))
+
+proportion_drug_encounters =  number_of_prescription_encounters / total_number_of_patient_visits * 100
 
 total_number_of_all_prescriptions = 1 #all_health_facility_drugs %>% nrow()
 #Analyze the denominator by month. Is it exhibiting similar average counts. Is there evidence to suggest that some records were not entered in some months for example over the study period. Plot of count of visits over two years.
@@ -283,15 +300,16 @@ all_health_facility_adherence$start_date_new = as.Date(all_health_facility_adher
 adherence_encounter_observations = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>% group_by(unique_patient_id) 
 
 adherence_encounters = inner_join(adherence_encounter_observations,study_patient_visits, by = "unique_patient_id") %>% group_by(unique_patient_id,encounter_datetime) %>% slice(1)
+number_of_adherence_visits =  nrow(adherence_encounters)
 
-proportion_adherence_encounters = nrow(adherence_encounters) / total_number_of_patient_visits * 100
+proportion_adherence_encounters = number_of_adherence_visits / total_number_of_patient_visits * 100
 
+# Adherence observations completeness check
 all_health_facility_adherence = mutate(all_health_facility_adherence, complete_adherence = ifelse(adherence_in_percentage == "NULL", "Incomplete","Complete"))
 
-
- 
 number_of_all_patients_with_complete_adherence = all_health_facility_adherence  %>% filter(complete_adherence == "Complete") %>% nrow()
 number_of_all_patient_adherence_visits = all_health_facility_adherence %>% nrow()
+
 all_proportion_adherence = number_of_all_patients_with_complete_adherence / number_of_all_patient_adherence_visits * 100
 all_proportion_adherence
 
@@ -300,9 +318,16 @@ all_proportion_adherence
  #total number of patients that have been registered since the begining of the clinic to 6 months before the end of the study period
  #number of patients with a viral load reading documented in this period.
  #The tables here from one clinic only. The others are being uploaded.
+#The denominator here will be total number of patients in the study. The assumption is that all the study patients should have at least one viral load encounter by the time of the study. We shall consider patients that had a viral load even before the study period since this is the only documented viral load observation.
 
+patient_vl_encounters = inner_join(all_study_patients, all_health_facility_vl, by = "unique_patient_id") %>% group_by(unique_patient_id,patient_visit_date) %>% slice(1)
+
+number_of_vl_visits = nrow(patient_vl_encounters)
+
+proportion_of_vl_encounters = number_of_vl_visits / total_number_of_all_patients * 100
 
 total_number_vl_all_patients = all_health_facility_vl %>% nrow()
+# Viral load observations completeness
 all_health_facility_vl$complete_viral_load =  ifelse((all_health_facility_vl$patient_VL_results != "" & all_health_facility_vl$patient_VL_results != "NULL"), "Complete","Incomplete") 
 number_of_all_complete_viral_loads = all_health_facility_vl %>% filter(complete_viral_load == "Complete")  %>% nrow()
 proportion_of_all_complete_vl = number_of_all_complete_viral_loads/total_number_vl_all_patients * 100
@@ -310,7 +335,8 @@ proportion_of_all_complete_vl = number_of_all_complete_viral_loads/total_number_
 #Build the completeness data tables
 
 ######### 
-# Completeness Table for All Health Facilities
+# Completeness Table for All Health Facilities for Encounter Observations
+
 variable_names_all = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescriptions Made","Drug Adherence")
 
 numerators_all = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,number_of_all_complete_viral_loads,number_of_all_complete_prescriptions,number_of_all_patients_with_complete_adherence)
@@ -326,6 +352,28 @@ all_healthfacility_completeness_table$numerators_all = as.numeric(all_healthfaci
 all_healthfacility_completeness_table$denominators_all = as.numeric(all_healthfacility_completeness_table$denominators_all)
 
 all_healthfacility_completeness_table$proportions_all = as.numeric(all_healthfacility_completeness_table$proportions_all)
+
+#Create Completeness Table for Patient Visits or Encounters
+
+variable_names_encounters = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","Heights of Patient","Prescriptions Made","Drug Adherence", "HIV Viral Load")
+
+
+encounter_numerators  = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,total_number_of_weight_visits,total_number_of_height_visits,number_of_prescription_encounters,number_of_adherence_visits,number_of_vl_visits)
+
+encounter_denominators = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_all_patients)
+
+proportion_encounters = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_weight_encounters,proportion_height_encounters, proportion_drug_encounters, proportion_adherence_encounters, proportion_of_vl_encounters) 
+
+
+all_encounters_completeness_table = data.frame(variable_names_encounters,encounter_numerators,encounter_denominators,proportion_encounters, stringsAsFactors = FALSE)
+ 
+all_encounters_completeness_table$encounter_numerators = as.numeric(all_encounters_completeness_table$encounter_numerators)
+
+all_encounters_completeness_table$encounter_denominators = as.numeric(all_encounters_completeness_table$encounter_denominators)
+
+all_encounters_completeness_table$proportion_encounters = as.numeric(all_encounters_completeness_table$proportion_encounters)
+
+
 
 ### factor these variables for table 1
 all_health_facility_addresses$health_facility_type = factor(all_health_facility_addresses$health_facility_type)
@@ -364,14 +412,23 @@ cd$address_value = as.factor(cd$address_value)
 #Tables to Further Analyze completeness
 #
 
- a = table1(~gender + age|complete_address, data = id_data_table_qech, output = "markdown")
 
- b = table1(~gender + age|health_facility_type, data = all_health_facility_addresses, output = "pandoc")
+#Filter by healthfacility type and then tabulate data based on health facility type (health center, district and tertiary)
+
+health_center_addresses = all_health_facility_addresses %>% filter(health_facility_type == "Health Center")
+district_addresses = all_health_facility_addresses %>% filter(health_facility_type == "District")
+tertiary_addresses = all_health_facility_addresses %>% filter(health_facility_type == "Tertiary")
+
+all_study_patients_characteristics = table1(~gender + age|health_facility_type, data = all_health_facility_addresses, output = "pandoc")
 
 
- c = table1(~gender + age + health_facility_type|complete_address, data = all_health_facility_addresses, output = "html")
+study_patients_at_health_centers = table1(~gender + age|health_facility_name, data = health_center_addresses, output = "html")
 
-d = table1(~gender + age|health_facility_name, data = all_health_facility_addresses, output = "pandoc")
+study_patients_at_district_hospitals = table1(~gender + age|health_facility_name, data = district_addresses, output = "html")
+
+study_patients_at_tertiary = table1(~gender + age|health_facility_name, data = tertiary_addresses, output = "html")
+
+
 
  #Analyze the addresses as the field used for following up patients. Check the total number of patients that have been registered at each facility. Modification is that patient identifier no longer checked because HIV Testing Services (HTS) is not part of the available EMRs. Therefore check for total number of patients per site, then assess completeness of physical address as a set of "TA, district and village (current place of residence)"
 #Patients with complete physical addresses. We define complete village as all addresses that have got the smallest unit of address which represents the current place of residence. Residents without current place of residence cannot be followed up if they miss an appointment. This is a threat to the second 90 of patient retention. 
@@ -644,9 +701,15 @@ all_plausibility_table$Proportions = as.numeric(all_plausibility_table$Proportio
 
 
 
-kable(b, caption = "Table 1: Gender and Age by Health Facility Types of All Study Records", col.names = NA)
+kable(all_study_patients_characteristics, caption = "Table 1: Gender and Age by Health Facility Types of All Study Records", col.names = NA)
 
-kable(d, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records", col.names = NA)
+kable(study_patients_at_health_centers, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records at Health Centers", col.names = NA)
+
+kable(study_patients_at_district_hospitals, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records at District Hospitals", col.names = NA)
+
+kable(study_patients_at_tertiary, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records at Tertiary Hospitals", col.names = NA)
+
+
 
 kable(completeness_table, caption = "Completeness of Documented Patient Records at a Selected ART Clinic",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
 
