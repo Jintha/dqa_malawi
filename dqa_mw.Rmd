@@ -83,7 +83,13 @@ patient_vitals_tertiary_kch_df = fread("~/Box Sync/quantitative_data/patient_wei
 
 patient_vitals_tertiary_mch_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/mzuzu_central.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "MCH") %>% mutate(unique_patient_id = paste("mch", patient_id, sep="_"))
 
+patient_vitals_tertiary_mch_df$encounter_datetime = as.Date(patient_vitals_tertiary_mch_df$encounter_datetime, "%m/%d/%y")  
+
+patient_vitals_tertiary_mch_df$encounter_datetime = as.character(patient_vitals_tertiary_mch_df$encounter_datetime)
+
+
 patient_vitals_tertiary_zch_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Tertiary/zch_vitals.csv") %>% mutate(health_facility_type = "Tertiary") %>% mutate(health_facility_name = "ZCH") %>% mutate(unique_patient_id = paste("zch", patient_id, sep="_"))
+
 
 
 patient_vitals_healthcenter_limbe_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Health Center/limbe_vitals.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Limbe") %>% mutate(unique_patient_id = paste("lim", patient_id, sep="_"))
@@ -181,7 +187,7 @@ all_health_facility_vl = rbindlist(patient_vl_list, use.names = TRUE,fill=TRUE)
 #Denominators
 #Total number of patients alive during the study period. Select all patients that are alive during the study period
 
-all_study_patients = all_health_facility_addresses %>% select(unique_patient_id) %>% unique.data.frame()
+all_study_patients = all_health_facility_addresses %>% unique.data.frame()
 total_number_of_all_patients = nrow(all_study_patients)
 
 #Patient visits. Currently using patient visits because that is the highest encounter type.This will be replaced by HIV reception encounter since some visits are guardian visits where the patient is not present and hence will not have a weight encounter.
@@ -220,7 +226,7 @@ total_number_of_weight_visits = nrow(all_weight_encounters)
 
 proportion_weight_encounters = total_number_of_weight_visits / total_number_of_patient_visits *100
   
-proportion_all_complete_weight_documentation = all_number_of_complete_weight_observations / all_total_number_of_patient_visits * 100
+proportion_all_complete_weight_documentation = all_number_of_complete_weight_observations / total_number_of_patient_visits  * 100
 
 
   
@@ -230,9 +236,9 @@ all_height_encounters = all_health_facility_vitals %>% filter(encounter_datetime
 
 total_number_of_height_visits = nrow(all_height_encounters)
 
-proportion_height_encounters = total_number_of_height_visits / total_number_of_patient_visits *100
+proportion_height_encounters = total_number_of_height_visits / total_number_of_all_patients *100
 
-proportion_of_all_height_observations = all_number_of_height_observations / total_number_of_all_patients * 100
+#proportion_of_all_height_observations = all_number_of_height_observations / total_number_of_all_patients * 100
 
 #Prescription. Probably need the encounter id
 #Denominator will be total number of prescriptions made. A patient may have multiple prescriptions made on any single visit. In this case, the denominator differs with the weight denominator where the expectation is a single value for each day.
@@ -341,7 +347,7 @@ variable_names_all = c("Current Patient Address","Patient Mobile Phone Number","
 
 numerators_all = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,number_of_all_complete_viral_loads,number_of_all_complete_prescriptions,number_of_all_patients_with_complete_adherence)
 
-denominators_all = c(total_number_of_all_patients,total_number_of_all_patients,all_total_number_of_patient_visits,total_number_vl_all_patients,total_number_of_all_prescriptions,number_of_all_patient_adherence_visits)
+denominators_all = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_vl_all_patients,total_number_of_all_prescriptions,number_of_all_patient_adherence_visits)
 
 proportions_all = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_all_complete_weight_documentation,proportion_of_all_complete_vl,all_prescription_completeness_proportion,all_proportion_adherence)
  
@@ -353,6 +359,7 @@ all_healthfacility_completeness_table$denominators_all = as.numeric(all_healthfa
 
 all_healthfacility_completeness_table$proportions_all = as.numeric(all_healthfacility_completeness_table$proportions_all)
 
+
 #Create Completeness Table for Patient Visits or Encounters
 
 variable_names_encounters = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","Heights of Patient","Prescriptions Made","Drug Adherence", "HIV Viral Load")
@@ -360,7 +367,7 @@ variable_names_encounters = c("Current Patient Address","Patient Mobile Phone Nu
 
 encounter_numerators  = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,total_number_of_weight_visits,total_number_of_height_visits,number_of_prescription_encounters,number_of_adherence_visits,number_of_vl_visits)
 
-encounter_denominators = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_all_patients)
+encounter_denominators = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_all_patients)
 
 proportion_encounters = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_weight_encounters,proportion_height_encounters, proportion_drug_encounters, proportion_adherence_encounters, proportion_of_vl_encounters) 
 
@@ -387,8 +394,9 @@ all_health_facility_vitals$health_facility_name = factor(all_health_facility_vit
 all_health_facility_vl$health_facility_type = factor(all_health_facility_vl$health_facility_type)
 all_health_facility_vl$health_facility_name = factor(all_health_facility_vl$health_facility_name)
 
-all_health_facility_adherence$health_facility_type = factor(all_health_facility_addresses$health_facility_type)
-all_health_facility_adherence$health_facility_name = factor(all_health_facility_addresses$health_facility_name)
+all_health_facility_adherence$health_facility_type = factor(all_health_facility_adherence$health_facility_type)
+
+all_health_facility_adherence$health_facility_name = factor(all_health_facility_adherence$health_facility_name)
 
 all_health_facility_drugs$health_facility_type = factor(all_health_facility_drugs$health_facility_type)
 all_health_facility_drugs$health_facility_name = factor(all_health_facility_drugs$health_facility_name)
@@ -409,9 +417,9 @@ cd$address_value = ifelse((cd$address_value != "Documented Other" &  cd$address_
 cd$address_section = as.factor(cd$address_section)
 cd$address_value = as.factor(cd$address_value)
  
-#Tables to Further Analyze completeness
-#
 
+
+#Table 1 study patients characteristics
 
 #Filter by healthfacility type and then tabulate data based on health facility type (health center, district and tertiary)
 
@@ -428,6 +436,9 @@ study_patients_at_district_hospitals = table1(~gender + age|health_facility_name
 
 study_patients_at_tertiary = table1(~gender + age|health_facility_name, data = tertiary_addresses, output = "html")
 
+#Breakdown patient visits by health facility type and name as denominator for each health facility
+
+number_of_patient_visits_per_health_facility = table1(~health_facility_name, data = study_patient_visits)
 
 
  #Analyze the addresses as the field used for following up patients. Check the total number of patients that have been registered at each facility. Modification is that patient identifier no longer checked because HIV Testing Services (HTS) is not part of the available EMRs. Therefore check for total number of patients per site, then assess completeness of physical address as a set of "TA, district and village (current place of residence)"
@@ -499,9 +510,6 @@ joined_addresses = dbFetch(rs1, n = -1)
 dbClearResult(rs1)
 dbDisconnect(mydb)
 
-
-id_data_table_qech = mutate(id_data_table_qech, plausible_address = "Not Plausible")
-
 all_health_facility_addresses = mutate(all_health_facility_addresses, plausible_address = "Not Plausible")
 
 plausible_physical_address <- function(address_table) {
@@ -519,8 +527,6 @@ while (i <= nrow(address_table))
 return(address_table)
 }
 
-number_of_plausible_addresses = plausible_physical_address(id_data_table_qech) %>% filter(plausible_address == "Plausible") %>% nrow()
-
 number_of_all_plausible_addresses = plausible_physical_address(all_health_facility_addresses) %>% filter(plausible_address == "Plausible") %>% nrow()
 
 proportion_of_plausible_addresses = number_of_plausible_addresses / number_of_complete_addresses * 100
@@ -530,10 +536,6 @@ proportion_of_all_plausible_addresses = number_of_all_plausible_addresses / numb
 #
 
 #regular expression pattern for phone numbers. Filter those that are non numeric and are more than or less than 10 digits.
-
-id_data_table_qech$plausible_phone_number = ifelse(str_length(id_data_table_qech$cell_number) == 10,
-                                                   "Plausible",
-                                                   "Not Plausible")
 
 all_health_facility_addresses$plausible_phone_number = ifelse(str_length(all_health_facility_addresses$cell_number) == 10,"Plausible","Not Plausible")
 
@@ -545,11 +547,38 @@ proportion_plausible_numbers = number_of_plausible_numbers / number_of_complete_
 proportion_of_all_plausible_numbers = number_of_all_plausible_phone_numbers / number_of_all_complete_phone_numbers * 100
 
 
-# Plausible Weight Values
+# Plausible Weight Values. This will take into consideration all weight observations that were made during the study visit. Then check the weight values that fall within accepted thresholds.
+
+# Examine the data for outliers 
+all_health_facility_vitals$height_new = as.numeric(all_health_facility_vitals$height)
+all_health_facility_vitals$weight_new = as.numeric(all_health_facility_vitals$weight)
+
+ggplot(study_period_vitals, aes(health_facility_name,height_new)) + geom_boxplot()
+
+study_period_vitals = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01")
+
+# add age and sex for study period vitals
+study_period_vitals_age = character(nrow(study_period_vitals))
+study_period_vitals_sex = character(nrow(study_period_vitals))
+
+for(i in 1:nrow(study_period_vitals)){
+  pat_id = study_period_vitals[i,]$unique_patient_id
+  vitals = all_study_patients %>% filter(unique_patient_id == pat_id ) 
+   study_period_vitals_age[i] = vitals$age
+  study_period_vitals_sex[i] = vitals$gender
+  if(i %% 1000 == 0){print("10 pin")}
+}
+
 number_of_plausible_weight_observations = 1
 proportion_plausible_weights = number_of_plausible_weight_observations/number_of_complete_weight_observations * 100
 number_of_all_plausible_weight_observations = 1
 proportion_all_plausible_weights = number_of_all_plausible_weight_observations/all_number_of_complete_weight_observations * 100
+
+# Plausible Height Values
+number_of_plausible_height_observations = 1
+proportion_plausible_heights = number_of_plausible_height_observations/number_of_complete_height_observations * 100
+number_of_all_plausible_height_observations = 1
+proportion_all_plausible_heights = number_of_all_plausible_height_observations/all_number_of_complete_height_observations * 100
 
 #Plausible Drugs
 
@@ -698,9 +727,6 @@ all_plausibility_table$Proportions = as.numeric(all_plausibility_table$Proportio
 
 ```{r display_results}
 
-
-
-
 kable(all_study_patients_characteristics, caption = "Table 1: Gender and Age by Health Facility Types of All Study Records", col.names = NA)
 
 kable(study_patients_at_health_centers, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records at Health Centers", col.names = NA)
@@ -709,15 +735,19 @@ kable(study_patients_at_district_hospitals, caption = "Table 1: Gender and Age b
 
 kable(study_patients_at_tertiary, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records at Tertiary Hospitals", col.names = NA)
 
-
-
-kable(completeness_table, caption = "Completeness of Documented Patient Records at a Selected ART Clinic",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
+# kable(completeness_table, caption = "Completeness of Documented Patient Records at a Selected ART Clinic",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
 
 kable(all_healthfacility_completeness_table, caption = "Completeness of Documented Patient Records at Selected ART Clinics",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
  
-kable(a, caption = "Gender, Age by Completeness of Physical Address of All Health Facilities")
+kable(number_of_patient_visits_per_health_facility, caption = "Number of patient visits by health facility name and health facility type")
 
-kable(c, caption = "Gender, Age, Health Faclity Type Records by Completeness of Physical Address")
+kable(all_encounters_completeness_table, caption = "Completeness of Patient Visits Based on 90-90-90 Encounters at Selected Health Facilities",col.names = c("Indicator Name","Numerator Count","Denominator Count","Proportion of Encounters"), digits = 2)
+
+
+
+# kable(a, caption = "Gender, Age by Completeness of Physical Address of All Health Facilities")
+# 
+# kable(c, caption = "Gender, Age, Health Faclity Type Records by Completeness of Physical Address")
 
 ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type)
 
