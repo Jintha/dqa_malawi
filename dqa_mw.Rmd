@@ -564,10 +564,14 @@ study_period_vitals_sex = character(nrow(study_period_vitals))
 for(i in 1:nrow(study_period_vitals)){
   pat_id = study_period_vitals[i,]$unique_patient_id
   vitals = all_study_patients %>% filter(unique_patient_id == pat_id ) 
+  if(vitals$age !is.null() == TRUE){
    study_period_vitals_age[i] = vitals$age
-  study_period_vitals_sex[i] = vitals$gender
-  if(i %% 1000 == 0){print("10 pin")}
+   study_period_vitals_sex[i] = vitals$gender
+  }
 }
+
+study_period_vitals$age = study_period_vitals_age
+study_period_vitals$sex = study_period_vitals_sex
 
 number_of_plausible_weight_observations = 1
 proportion_plausible_weights = number_of_plausible_weight_observations/number_of_complete_weight_observations * 100
