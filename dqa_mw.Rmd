@@ -427,7 +427,19 @@ health_center_addresses = all_health_facility_addresses %>% filter(health_facili
 district_addresses = all_health_facility_addresses %>% filter(health_facility_type == "District")
 tertiary_addresses = all_health_facility_addresses %>% filter(health_facility_type == "Tertiary")
 
-all_study_patients_characteristics = table1(~gender + age|health_facility_type, data = all_health_facility_addresses, output = "pandoc")
+agebreaks <- c(0,1,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,500)
+agelabels <- c("0-1","1-4","5-9","10-14","15-19","20-24","25-29","30-34",
+               "35-39","40-44","45-49","50-54","55-59","60-64","65-69",
+               "70-74","75-79","80-84","85+")
+
+setDT(all_health_facility_addresses)[ , agegroups := cut(age, 
+                                breaks = agebreaks, 
+                                right = FALSE, 
+                                labels = agelabels)]
+
+
+
+all_study_patients_characteristics = table1(~gender + agegroups + age|health_facility_type, data = all_health_facility_addresses, output = "pandoc")
 
 
 study_patients_at_health_centers = table1(~gender + age|health_facility_name, data = health_center_addresses, output = "html")
@@ -529,8 +541,6 @@ return(address_table)
 
 number_of_all_plausible_addresses = plausible_physical_address(all_health_facility_addresses) %>% filter(plausible_address == "Plausible") %>% nrow()
 
-proportion_of_plausible_addresses = number_of_plausible_addresses / number_of_complete_addresses * 100
-
 proportion_of_all_plausible_addresses = number_of_all_plausible_addresses / number_of_all_complete_addresses * 100
 
 #
@@ -572,6 +582,22 @@ for(i in 1:nrow(study_period_vitals)){
 
 study_period_vitals$age = study_period_vitals_age
 study_period_vitals$sex = study_period_vitals_sex
+
+study_period_vitals = mutate(study_age_in_months = study_period_vitals$age*12)
+weight_height_lookup_table = fread("~/Box Sync/wtht_rangecheck.csv", col.names = c("age_in_months", "sex","low_height", "high_height", "low_weight", "high_weight"))
+
+plausible_vitals_weight = character(nrow(study_period_vitals))
+plausible_vitals_height = character(nrow(study_period_vitals))
+
+for(i in 1:nrow(study_period_vitals)){
+  validating_record = weight_height_lookup_table %>% filter(age_in_months == study_period_vitals[i,]$study_age_in_months & sex = study_period_vitals[i,]$sex)
+  pat_weight = study_period_vitals[i,]$weight
+  pat_height = study_period_vitals[i,]$height
+  plausible_vitals_weight[i] = ifelse(pat_weight >= validating_record$low_weight & pat_weight <= validating_record$high_weight,"Plausible","Not Plausible" )
+  if(pat_height !is.null){
+    plausible_vitals_height[i] = ifelse(pat_weight >= validating_record$low_height & pat_weight <= validating_record$high_height,"Plausible","Not Plausible" )
+  }
+}
 
 number_of_plausible_weight_observations = 1
 proportion_plausible_weights = number_of_plausible_weight_observations/number_of_complete_weight_observations * 100
