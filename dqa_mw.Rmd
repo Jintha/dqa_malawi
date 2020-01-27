@@ -220,13 +220,22 @@ all_phone_number_proportion = number_of_all_complete_phone_numbers/total_number_
 all_health_facility_vitals$complete_weight = ifelse(all_health_facility_vitals$weight != "NULL", "Complete","Incomplete") 
 all_number_of_complete_weight_observations = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>%  filter(complete_weight == "Complete") %>% nrow()
 
-all_weight_encounters = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(weight != "NULL") %>% group_by(unique_patient_id,health_facility_name) %>% slice(1) 
+all_weight_encounters = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") 
+
+#%>% filter(weight != "NULL") %>% group_by(unique_patient_id,health_facility_name) %>% slice(1) 
 
 total_number_of_weight_visits = nrow(all_weight_encounters)
 
 proportion_weight_encounters = total_number_of_weight_visits / total_number_of_patient_visits *100
   
 proportion_all_complete_weight_documentation = all_number_of_complete_weight_observations / total_number_of_patient_visits  * 100
+
+make.table(dat          = all_weight_encounters,
+           strat        = "complete_weight",
+           cat.varlist  = c("health_facility_type", "complete_weight"),
+           cat.rmstat   = list(c("row"), c("col")),
+           cat.ptype    = c("chisq"),
+           output       = "html")
 
 
   
@@ -280,7 +289,16 @@ update_names = function(drug_table){
 }
 
 
-prescription_encounters = (update_names(prescription_encounters))
+
+#Fix the logic for checking calling of this loop here.
+#I want to loop only when there is no cleaned file of encounters
+if(find.file("cleaned_prescription_encounters.csv") == "cleaned_prescription_encounters.csv"){
+  prescription_encounters = fread("cleaned_prescription_encounters.csv")
+}else{
+ prescription_encounters = (update_names(prescription_encounters))
+ write.csv((prescription_encounters), file = "cleaned_prescription_encounters.csv")
+}
+
 
 #Calculate proportions of drug encounters among patient visits
 
@@ -306,6 +324,7 @@ all_health_facility_adherence$start_date_new = as.Date(all_health_facility_adher
 adherence_encounter_observations = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>% group_by(unique_patient_id) 
 
 adherence_encounters = inner_join(adherence_encounter_observations,study_patient_visits, by = "unique_patient_id") %>% group_by(unique_patient_id,encounter_datetime) %>% slice(1)
+
 number_of_adherence_visits =  nrow(adherence_encounters)
 
 proportion_adherence_encounters = number_of_adherence_visits / total_number_of_patient_visits * 100
@@ -317,7 +336,7 @@ number_of_all_patients_with_complete_adherence = all_health_facility_adherence  
 number_of_all_patient_adherence_visits = all_health_facility_adherence %>% nrow()
 
 all_proportion_adherence = number_of_all_patients_with_complete_adherence / number_of_all_patient_adherence_visits * 100
-all_proportion_adherence
+
 
  
  #Viral load
@@ -338,6 +357,10 @@ all_health_facility_vl$complete_viral_load =  ifelse((all_health_facility_vl$pat
 number_of_all_complete_viral_loads = all_health_facility_vl %>% filter(complete_viral_load == "Complete")  %>% nrow()
 proportion_of_all_complete_vl = number_of_all_complete_viral_loads/total_number_vl_all_patients * 100
  
+#Read table of importance characteristics to count priority of importance based on 90-90-90
+
+importance_priorities = fread("~/Dropbox/dissertation_data_analysis/importance_characteristics.csv")
+
 #Build the completeness data tables
 
 ######### 
@@ -353,6 +376,8 @@ proportions_all = c(all_address_completeness_proportion,all_phone_number_proport
  
 all_healthfacility_completeness_table = data.frame(variable_names_all,numerators_all,denominators_all,proportions_all, stringsAsFactors = FALSE)
  
+all_healthfacility_completeness_table_b = data.frame(variable_names_all,numerators_all,denominators_all,proportions_all, stringsAsFactors = FALSE)
+
 all_healthfacility_completeness_table$numerators_all = as.numeric(all_healthfacility_completeness_table$numerators_all)
 
 all_healthfacility_completeness_table$denominators_all = as.numeric(all_healthfacility_completeness_table$denominators_all)
@@ -360,7 +385,7 @@ all_healthfacility_completeness_table$denominators_all = as.numeric(all_healthfa
 all_healthfacility_completeness_table$proportions_all = as.numeric(all_healthfacility_completeness_table$proportions_all)
 
 
-#Create Completeness Table for Patient Visits or Encounters
+#Create Completeness Table for Patient Visits and Encounters
 
 variable_names_encounters = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","Heights of Patient","Prescriptions Made","Drug Adherence", "HIV Viral Load")
 
@@ -374,9 +399,19 @@ proportion_encounters = c(all_address_completeness_proportion,all_phone_number_p
 
 all_encounters_completeness_table = data.frame(variable_names_encounters,encounter_numerators,encounter_denominators,proportion_encounters, stringsAsFactors = FALSE)
  
+#
+all_encounters_completeness_table_b = data.frame(variable_names_encounters,encounter_numerators,encounter_denominators, stringsAsFactors = FALSE)
+ 
+#
 all_encounters_completeness_table$encounter_numerators = as.numeric(all_encounters_completeness_table$encounter_numerators)
 
 all_encounters_completeness_table$encounter_denominators = as.numeric(all_encounters_completeness_table$encounter_denominators)
+
+####
+all_encounters_completeness_table_b$encounter_numerators = as.numeric(all_encounters_completeness_table_b$encounter_numerators)
+all_encounters_completeness_table_b$encounter_denominators = as.numeric(all_encounters_completeness_table_b$encounter_denominators)
+#####
+
 
 all_encounters_completeness_table$proportion_encounters = as.numeric(all_encounters_completeness_table$proportion_encounters)
 
@@ -524,22 +559,49 @@ dbDisconnect(mydb)
 
 all_health_facility_addresses = mutate(all_health_facility_addresses, plausible_address = "Not Plausible")
 
+
+
+
 plausible_physical_address <- function(address_table) {
+
+#Initialize vectors
+plausible_address_vector = character(nrow(address_table))
+districts_vector = character(nrow(address_table))
+ta_vector = character(nrow(address_table))
+village_vector = character(nrow(address_table))
+
+
+districts_vector = address_table$district
+ta_vector = address_table$ta
+village_vector = address_table$village  
+
 i = 1
 while (i <= nrow(address_table))
 {
   jd = joined_addresses %>% filter(
-    district_name == address_table[i, ]$district &
-      ta_name == address_table[i, ]$ta &
-      village_name == address_table[i, ]$village
+    district_name == districts_vector[i] &
+      ta_name == ta_vector[i] &
+      village_name == village_vector[i]
   )
-  address_table[i, ]$plausible_address = ifelse(empty(jd) == TRUE, "Not Plausible", "Plausible")
+  plausible_address_vector[i]= ifelse(empty(jd) == TRUE, "Not Plausible", "Plausible")
   i = i + 1
+
+  if(i%%1000 == 10){print(paste("Xerxes",i, sep ="_"))}
 }
-return(address_table)
+return(plausible_address_vector)
 }
 
-number_of_all_plausible_addresses = plausible_physical_address(all_health_facility_addresses) %>% filter(plausible_address == "Plausible") %>% nrow()
+
+
+if (find.file("~/all_health_facility_addresses.csv") == "all_health_facility_addresses.csv")
+{
+  all_health_facility_addresses = fread("~/all_health_facility_addresses.csv")  
+}else{ 
+  all_health_facility_addresses$plausible_address =  plausible_physical_address(all_health_facility_addresses) 
+  write.csv(all_health_facility_addresses, file = "all_health_facility_addresses.csv")
+}
+
+number_of_all_plausible_addresses = all_health_facility_addresses %>%  filter(plausible_address == "Plausible") %>% nrow()
 
 proportion_of_all_plausible_addresses = number_of_all_plausible_addresses / number_of_all_complete_addresses * 100
 
@@ -549,11 +611,10 @@ proportion_of_all_plausible_addresses = number_of_all_plausible_addresses / numb
 
 all_health_facility_addresses$plausible_phone_number = ifelse(str_length(all_health_facility_addresses$cell_number) == 10,"Plausible","Not Plausible")
 
-number_of_plausible_phone_numbers = id_data_table_qech %>% filter(plausible_phone_number == "Plausible") %>% nrow()
+
 number_of_all_plausible_phone_numbers = all_health_facility_addresses %>% filter(plausible_phone_number == "Plausible") %>% nrow()
 
-proportion_plausible_numbers = number_of_plausible_numbers / number_of_complete_phone_numbers *
-  100
+
 proportion_of_all_plausible_numbers = number_of_all_plausible_phone_numbers / number_of_all_complete_phone_numbers * 100
 
 
@@ -563,52 +624,71 @@ proportion_of_all_plausible_numbers = number_of_all_plausible_phone_numbers / nu
 all_health_facility_vitals$height_new = as.numeric(all_health_facility_vitals$height)
 all_health_facility_vitals$weight_new = as.numeric(all_health_facility_vitals$weight)
 
-ggplot(study_period_vitals, aes(health_facility_name,height_new)) + geom_boxplot()
+
 
 study_period_vitals = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01")
+
+ggplot(study_period_vitals, aes(health_facility_name,height_new)) + geom_boxplot()
 
 # add age and sex for study period vitals
 study_period_vitals_age = character(nrow(study_period_vitals))
 study_period_vitals_sex = character(nrow(study_period_vitals))
+vitals_id = character(nrow(study_period_vitals))
+vitals_id  = study_period_vitals$unique_patient_id
 
 for(i in 1:nrow(study_period_vitals)){
-  pat_id = study_period_vitals[i,]$unique_patient_id
-  vitals = all_study_patients %>% filter(unique_patient_id == pat_id ) 
-  if(vitals$age !is.null() == TRUE){
-   study_period_vitals_age[i] = vitals$age
-   study_period_vitals_sex[i] = vitals$gender
+  patient = all_study_patients %>% filter(unique_patient_id == vitals_id[i]) 
+  if(empty(patient) == FALSE){
+   study_period_vitals_age[i] = patient$age
+   study_period_vitals_sex[i] = patient$gender
   }
 }
 
 study_period_vitals$age = study_period_vitals_age
 study_period_vitals$sex = study_period_vitals_sex
 
+
 study_period_vitals = mutate(study_age_in_months = study_period_vitals$age*12)
+
 weight_height_lookup_table = fread("~/Box Sync/wtht_rangecheck.csv", col.names = c("age_in_months", "sex","low_height", "high_height", "low_weight", "high_weight"))
 
 plausible_vitals_weight = character(nrow(study_period_vitals))
 plausible_vitals_height = character(nrow(study_period_vitals))
+pat_weight_vector = study_period_vitals[i]$weight
+pat_height_vector = study_period_vitals[i]$height
 
+
+if(find.file("study_period_vitals.csv") == "study_period_vitals.csv")
+{
+
+  study_period_vitals = fread("study_period_vitals.csv")  
+
+}else{
+  
 for(i in 1:nrow(study_period_vitals)){
   validating_record = weight_height_lookup_table %>% filter(age_in_months == study_period_vitals[i,]$study_age_in_months & sex = study_period_vitals[i,]$sex)
-  pat_weight = study_period_vitals[i,]$weight
-  pat_height = study_period_vitals[i,]$height
-  plausible_vitals_weight[i] = ifelse(pat_weight >= validating_record$low_weight & pat_weight <= validating_record$high_weight,"Plausible","Not Plausible" )
-  if(pat_height !is.null){
-    plausible_vitals_height[i] = ifelse(pat_weight >= validating_record$low_height & pat_weight <= validating_record$high_height,"Plausible","Not Plausible" )
+  
+  plausible_vitals_weight[i] = ifelse(pat_weight_vector[i] >= validating_record$low_weight & pat_weight_vector[i] <= validating_record$high_weight,"Plausible","Not Plausible" )
+  if(pat_height_vector[i] !is.null){
+    plausible_vitals_height[i] = ifelse(pat_height_vector[i] >= validating_record$low_height & pat_height_vector[i] <= validating_record$high_height,"Plausible","Not Plausible" )
   }
 }
+study_period_vitals$plausible_weight  = plausible_vitals_weight
+study_period_vitals$plausible_height = plausible_height
+write.csv(study_period_vitals, file = "study_period_vitals.csv")
+}
 
-number_of_plausible_weight_observations = 1
+
+number_of_plausible_weight_observations = study_period_vitals %>% filter(plausible_weight == "Plausible") %>%  nrow()
+
 proportion_plausible_weights = number_of_plausible_weight_observations/number_of_complete_weight_observations * 100
-number_of_all_plausible_weight_observations = 1
-proportion_all_plausible_weights = number_of_all_plausible_weight_observations/all_number_of_complete_weight_observations * 100
 
 # Plausible Height Values
-number_of_plausible_height_observations = 1
-proportion_plausible_heights = number_of_plausible_height_observations/number_of_complete_height_observations * 100
-number_of_all_plausible_height_observations = 1
+
+number_of_all_plausible_height_observations = study_period_vitals %>% filter(plausible_height == "Plausible") %>%  nrow()
+
 proportion_all_plausible_heights = number_of_all_plausible_height_observations/all_number_of_complete_height_observations * 100
+
 
 #Plausible Drugs
 
@@ -620,7 +700,12 @@ all_prescription_plausibility_proportion = number_of_all_plausible_prescriptions
 
 #Plausible Adherence
 #
-number_of_patients_with_plausible_adherence = 1
+all_health_facility_adherence = as.numeric(all_health_facility_adherence$adherence_in_percentage)
+
+all_health_facility_adherence$plausible_adherence = ifelse(all_health_facility_adherence$adherence_in_percentage >= 95 && all_health_facility_adherence$adherence_in_percentage <= 105, "Plausible","Not plausible")
+
+number_of_patients_with_plausible_adherence = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>%  filter(plausible_adherence == "Plausible") 
+
 number_of_all_patients_with_plausible_adherence = 1
 proportion_plausible_adherence = number_of_patients_with_plausible_adherence / number_of_patients_with_complete_adherence * 100
 proportion_all_plausible_adherence = number_of_all_patients_with_plausible_adherence / number_of_all_patients_with_complete_adherence * 100
@@ -786,16 +871,6 @@ kable(plausibility_table, caption = "Plausibility of Complete Patient Record Var
 kable(all_plausibility_table, caption = "Plausibility of Complete Patient Record Variables at a Selected ART Clinic in Malawi", digits = 2)
 
 
-output <- character (nrow(df)) # initialize output vector
-system.time({
-  for (i in 1:nrow(df)) {
-    if ((df[i, 'col1'] + df[i, 'col2'] + df[i, 'col3'] + df[i, 'col4']) > 4) {
-      output[i] <- "greater_than_4"
-    } else {
-      output[i] <- "lesser_than_4"
-    }
-  }
-df$output})
 
 
 
