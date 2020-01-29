@@ -624,7 +624,7 @@ all_health_facility_vitals$height_new = as.numeric(all_health_facility_vitals$he
 all_health_facility_vitals$weight_new = as.numeric(all_health_facility_vitals$weight)
 
 
-
+#at observation level
 study_period_vitals = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01")
 
 ggplot(study_period_vitals, aes(health_facility_name,height_new)) + geom_boxplot()
@@ -633,8 +633,7 @@ ggplot(study_period_vitals, aes(health_facility_name,height_new)) + geom_boxplot
 
 
 #vectorize weight and height
-plausible_vitals_weight = character(nrow(study_period_vitals))
-plausible_vitals_height = character(nrow(study_period_vitals))
+
 pat_weight_vector = study_period_vitals$weight
 pat_height_vector = study_period_vitals$height
 
@@ -670,7 +669,9 @@ write.csv(study_period_vitals, file = "study_period_vitals.csv")
 
 weight_height_lookup_table = fread("~/Dropbox/dissertation_data_analysis/wtht_rangecheck.csv", col.names = c("age_in_months", "sex","low_height", "high_height", "low_weight", "high_weight"))
 
-study_period_vitals = study_period_vitals %>% filter(sex != "") 
+study_period_vitals = study_period_vitals %>% filter(sex != "")
+plausible_vitals_weight = character(nrow(study_period_vitals))
+plausible_vitals_height = character(nrow(study_period_vitals))
 
 study_period_vitals$sex = ifelse(study_period_vitals$sex == "F" | study_period_vitals$sex == "Female", "Female","Male")
 if(find.file("study_patient_vitals_plausible.csv") == "study_patient_vitals_plausible.csv"){
@@ -685,21 +686,21 @@ if(find.file("study_patient_vitals_plausible.csv") == "study_patient_vitals_plau
   if(study_age_in_months <= 215){
     validating_record = weight_height_lookup_table %>% filter(age_in_months == study_age_in_months & sex == study_sex)
     
-    plausible_vitals_weight[i] = ifelse(pat_weight_vector[i] >= validating_record$low_weight & pat_weight_vector[i] <= validating_record$high_weight,"Plausible","Not Plausible" )
+    plausible_vitals_weight[i] = ifelse(as.numeric(pat_weight_vector[i]) >= validating_record$low_weight & as.numeric(pat_weight_vector[i]) <= validating_record$high_weight,"Plausible","Not Plausible" )
     print("sindindalowe!")
     print(pat_height_vector[i])
     print(i)
     if((pat_height_vector[i]) != "NULL"){
       print("ndalowa!")
       print(pat_height_vector[i])
-      plausible_vitals_height[i] = ifelse(pat_height_vector[i] >= validating_record$low_height & pat_height_vector[i] <= validating_record$high_height,"Plausible","Not Plausible" )
+      plausible_vitals_height[i] = ifelse(as.numeric(pat_height_vector[i]) >= validating_record$low_height & as.numeric(pat_height_vector[i]) <= validating_record$high_height,"Plausible","Not Plausible" )
     }
     
   }else
   {# check absolute weight and height for older patients
     #check absolute height first
-    plausible_vitals_height[i] = ifelse(pat_height_vector[i] >= 10 & pat_height_vector[i]<= 200,"Plausible","Not Plausible")
-    plausible_vitals_weight[i] = ifelse(pat_weight_vector[i] >= 0 & pat_weight_vector[i]<= 250,"Plausible","Not Plausible")
+    plausible_vitals_height[i] = ifelse(as.numeric(pat_height_vector[i]) >= 10 & as.numeric(pat_height_vector[i])<= 200,"Plausible","Not Plausible")
+    plausible_vitals_weight[i] = ifelse(as.numeric(pat_weight_vector[i]) >= 0 & as.numeric(pat_weight_vector[i])<= 250,"Plausible","Not Plausible")
   }
 }
 study_period_vitals$plausible_weight  = plausible_vitals_weight
