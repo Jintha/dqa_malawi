@@ -24,11 +24,13 @@ library(lubridate)
 library(RMySQL)
 library(stringr)
 library(plyr)
-install.packages("table1")
+#install.packages("table1")
 library(table1)
 library(data.table)
 library(reader)
-
+library(bigmemory)
+library(biganalytics)
+library(doParallel)
 ```
 
 
@@ -248,6 +250,8 @@ proportion_all_complete_weight_documentation = all_number_of_complete_weight_obs
 
 all_height_encounters = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(height != "NULL") %>% group_by(unique_patient_id) %>% slice(1) 
 
+all_number_height_encounters_observations = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% nrow()
+
 total_number_of_height_visits = nrow(all_height_encounters)
 
 proportion_height_encounters = total_number_of_height_visits / total_number_of_all_patients *100
@@ -291,7 +295,7 @@ update_names = function(drug_table){
    return(as.data.frame(drug_table))
 }
 
-#all_health_facility_drugs = update_names(all_health_facility_drugs)
+#prescription_encounter_observations = update_names(prescription_encounter_observations)
 
 if(find.file("cleaned_prescription_encounters.csv") == "cleaned_prescription_encounters.csv"){
   prescription_encounters = fread("cleaned_prescription_encounters.csv")
@@ -674,8 +678,9 @@ plausible_vitals_weight = character(nrow(study_period_vitals))
 plausible_vitals_height = character(nrow(study_period_vitals))
 
 study_period_vitals$sex = ifelse(study_period_vitals$sex == "F" | study_period_vitals$sex == "Female", "Female","Male")
-if(find.file("study_patient_vitals_plausible.csv") == "study_patient_vitals_plausible.csv"){
-  study_patient_vitals = fread("study_patient_vitals_plausible.csv")
+
+if(find.file("study_period_vitals_plausible.csv") == "study_period_vitals_plausible.csv"){
+  study_period_vitals = fread("study_period_vitals_plausible.csv")
   
 }else{
 
@@ -710,13 +715,13 @@ write.csv(study_period_vitals, file = "study_period_vitals_plausible.csv")
 
 number_of_plausible_weight_observations = study_period_vitals %>% filter(plausible_weight == "Plausible") %>%  nrow()
 
-proportion_plausible_weights = number_of_plausible_weight_observations/total_number_of_weight_visits * 100
+proportion_all_plausible_weights = number_of_plausible_weight_observations/total_number_of_weight_visits * 100
 
 # Plausible Height Values
 
 number_of_all_plausible_height_observations = study_period_vitals %>% filter(plausible_height == "Plausible") %>%  nrow()
 
-proportion_all_plausible_heights = number_of_all_plausible_height_observations/total_number_of_height_visits * 100
+proportion_all_plausible_heights = number_of_all_plausible_height_observations/all_number_height_encounters_observations * 100
 
 
 #Plausible Drugs
@@ -725,26 +730,41 @@ proportion_all_plausible_heights = number_of_all_plausible_height_observations/t
 #Prescription observations
 all_health_facility_drugs$quantity = as.numeric(all_health_facility_drugs$quantity)
 all_health_facility_drugs$regimen_category = as.factor(all_health_facility_drugs$regimen_category)
+# how to handle now ARVs? Compile a list of ARVs. Filter only those
 
-ggplot(all_health_facility_drugs)
-number_of_plausible_prescriptions = 1
-prescription_plausibility_proportion = number_of_plausible_prescriptions / number_of_complete_prescriptions *100
-number_of_all_plausible_prescriptions = 1
-all_prescription_plausibility_proportion = number_of_all_plausible_prescriptions / number_of_all_complete_prescriptions  *100
+list_of_arv_drugs = c("Etravirine 100mg","d4T (Stavudine 40mg tablet","LPV/r (Lopinavir and Ritonavir syrup)" ,"d4T (Stavudine 30mg tablet)","Ritonavir 100mg","Dolutegravir (50mg tablet)","TDF300/3TC300 + LPV/r200/50","NVP (Nevirapine syrup 1mL/dose in 100mL bottle)","ABC (Abacavir 300mg tablet)","NVP (Nevirapine 50 mg tablet)","ATV/(Atazanavir)","LPV/r (Lopinavir and Ritonavir 100/25mg tablet)" , "AZT/3TC/TDF/LPV/r","AZT (Zidovudine 300mg tablet)","ABC/3TC (Abacavir and Lamivudine 60/30mg tablet)","LS30 (Stavudine and Lamivudine 30mg tablet)","LPV/r (Lopinavir and Ritonavir 200/50mg tablet)","d4T/3TC/EFV (Stavudine Lamvudine Efavirenz)","TDF (Tenofavir 300 mg tablet)","TDF300/3TC300/DTG50","EFV (Efavirenz 200mg tablet)","Coviro40 (Lamivudine + Stavudine 150/40mg tablet)","AZT/3TC (Zidovudine and Lamivudine 60/30 tablet)","Clotrimazole pessaries","TMP/SMX (Cotrimoxazole 240mg tablet)","TMP/SMX (Cotrimoxazole 800/160mg tablet)","TMP/SMX (Cotrimoxazole 200/40mg tablet)","AZT/3TC/NVP","Coviro30 (Lamivudine + Stavudine 150/30 mg tablet)","ABC/3TC (Abacavir and Lamivudine 600/300mg tablet)","AZT/3TC (Zidovudine and Lamivudine 300/150mg)","ATV/r (Atazanavir 300mg/Ritonavir 100mg)","EFV (Efavirenz 600mg tablet)","AZT/3TC/NVP (60/30/50mg tablet)","Cotrimoxazole (1920mg)","d4T/3TC (Stavudine Lamivudine 6/30mg tablet)","TMP/SMX (Cotrimoxazole 400/80mg tablet)","NVP (Nevirapine 200 mg tablet)","Triomune baby (d4T/3TC/NVP 6/30/50mg tablet)","TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet","Cotrimoxazole (480mg tablet)","Cotrimoxazole (960mg)","d4T/3TC (Stavudine Lamivudine 30/150 tablet)","TDF/3TC/EFV (300/300/600mg tablet)","AZT/3TC/NVP (300/150/200mg tablet)","d4T/3TC/NVP (30/150/200mg tablet)")                                                                                                                                                  
+
+arv_prescription_observations = prescription_encounter_observations %>% filter(name %in% list_of_arv_drugs) %>% group_by(name,start_date,unique_patient_id) %>% slice(1)
+
+#Drugs dispensed should be between 30 to 180 in quantity (15 days or 1 month to 3 months) to allow for examination. Will flag the dispensation beyond these quantities as not plausible
+arv_prescription_observations$quantity = as.numeric(arv_prescription_observations$quantity)
+arv_prescription_observations$plausible_observations = ifelse(arv_prescription_observations$quantity >=30 |arv_prescription_observations$quantity <=180, "Plausible","Not plausible")
+
+
+
+ggplot(arv_prescription_observations, aes(health_facility_name.x,quantity)) + geom_boxplot() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
+
+
+number_of_all_plausible_prescriptions = arv_prescription_observations %>% filter(plausible_observations == "Plausible") %>% nrow()
+
+
+all_prescription_plausibility_proportion = number_of_all_plausible_prescriptions / nrow(arv_prescription_observations)  *100
 
 
 #Plausible Adherence
 #
-all_health_facility_adherence = as.numeric(all_health_facility_adherence$adherence_in_percentage)
+all_health_facility_adherence$adherence_in_percentage = as.numeric(all_health_facility_adherence$adherence_in_percentage)
+
 
 all_health_facility_adherence$plausible_adherence = ifelse(all_health_facility_adherence$adherence_in_percentage >= 95 && all_health_facility_adherence$adherence_in_percentage <= 105, "Plausible","Not plausible")
 
 all_patients_with_plausible_adherence = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>%  filter(plausible_adherence == "Plausible") 
 
 number_of_all_patients_with_plausible_adherence = all_patients_with_plausible_adherence %>% nrow()
-proportion_plausible_adherence = number_of_patients_with_plausible_adherence / number_of_patients_with_complete_adherence * 100
 
-proportion_all_plausible_adherence = number_of_all_patients_with_plausible_adherence / number_of_all_patients_with_complete_adherence * 100
+number_of_all_patients_with_adherence_observations = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>% nrow()
+  
+proportion_all_plausible_adherence = number_of_all_patients_with_plausible_adherence / number_of_all_patients_with_adherence_observations * 100
 
 #Plausible Viral load
 #identify patients with more than two viral load
@@ -766,52 +786,49 @@ all_health_facility_vl$time_months = interval(
 all_months_until_first_vl = all_health_facility_vl %>% group_by(patient_id, ART_start_date) %>% slice(1)
 all_months_until_first_vl$plausible = ifelse((all_months_until_first_vl$time_months >= 6 & all_months_until_first_vl$time_months <= 12), "Plausible","Not Plausible")
 
-patients_with_plausible_vl_timeframe = months_until_first_vl %>% filter(time_months == "Plausible") %>% nrow()
 
 all_patients_with_plausible_vl_timeframe = all_months_until_first_vl %>% filter(patient_visit_date >= "2017-01-01") %>%  filter(time_months == "Plausible") %>% nrow()
 
 #  #check for patients with two or more viral load results on the same day that are different and flag these as "Not Plausible"
 #
-viral_load_data_table_qech = mutate(viral_load_data_table_qech, vrl_day_plausible =
-                                    "Not Plausible")
+
 all_health_facility_vl = mutate(all_health_facility_vl, vrl_day_plausible =
                                     "Not Plausible")
-#remove NAs from table before looping
-viral_load_data_table_qech = viral_load_data_table_qech %>% na.omit(.)
-all_health_facility_vl = all_health_facility_vl %>% na.omit
-
-#registerDoParallel(cores = detectCores())
 
 #check if the same patient has more than 1 viral load on the same day but different values
 #
 plausible_viral_loads_day_results = function(viral_load_table){
-output <- character (nrow(viral_load_table))
+output = character (nrow(viral_load_table))
 viral_load_patient_ids = character (nrow(viral_load_table))
-viral_load_visit_dates = character (nrow(viral_load_table))
+viral_load_dates = character (nrow(viral_load_table))
 viral_load_patient_ids = viral_load_table$unique_patient_id
-viral_load_visit_dates = viral_load_table$patient_visit_date
-foreach (1:(nrow(viral_load_table) - 1)) %dopar% 
+viral_load_dates = viral_load_table$patient_visit_date
+viral_load_results = character(nrow(viral_load_table))
+viral_load_results = viral_load_table$patient_VL_results
+
+#registerDoParallel(cores=2)
+
+for (i in 1:(nrow(viral_load_table) - 1)) 
 {
-  foreach ((2):(nrow(viral_load_table))) %dopar% 
+  for (j in (2):(nrow(viral_load_table))) 
   {
-    if ((viral_load_patient_ids[i] == viral_load_patient_ids[j]) &
-        (
-          viral_load_table_visit_dates[i] == viral_load_table_visit_dates[j]
-        ))
+    if ((viral_load_patient_ids[i] == viral_load_patient_ids[j]) & (viral_load_dates[i] == viral_load_dates[j]))
     {
-     output[i] = "Plausible"
-     output[j] = "Plausible"
+      if(viral_load_results[i]==viral_load_results[j]){
+        output[i] = "Plausible"
+        output[j] = "Plausible"
+      }else{
+        output[i] = "Not plausible"
+        output[j] = "Not plausible"
+      }
       #viral_load_table$vrl_day_plausible[j] = "Plausible"
       # viral_load_table$vrl_day_plausible[i] = "Plausible"
       # viral_load_table$vrl_day_plausible[j] = "Plausible"
-    }else{ 
-      output[i] = "Not plausible"
-     output[j] = "Not plausible"
-      }
+    }
   }
   print(i)
 }
-viral_load_table$plausible_viral_load = output
+viral_load_table$vrl_day_plausible = output
 write.csv(viral_load_table, file = "viral_load_table.csv")
 return(viral_load_table) 
 }
@@ -819,29 +836,31 @@ return(viral_load_table)
 #count number of records that do not have a viral load test date as not complete.
 #count records with test dates earlier than 2014-01-01 as not accurate. Avoid double counting.
 
-if(find.file("viral_load_table.csv")=="viral_load_table.csv"){
-  viral_load_table = fread("viral_load_table.csv")
-}else{
-all_health_facility_vl = plausible_viral_loads_day_results(all_health_facility_vl)  
-}
+#registerDoParallel(cores=4)
 
+# if(find.file("viral_load_table.csv") =="viral_load_table.csv"){
+#   viral_load_table = fread("viral_load_table.csv")
+# }else{
+# all_health_facility_vl = plausible_viral_loads_day_results(all_health_facility_vl)  
+# }
 
+vl_earlier_than_censor_date = all_health_facility_vl
 
 vl_earlier_than_censor_date$plausible_firstdate =  ifelse(all_health_facility_vl$patient_visit_date <= "2014-01-01","Not plausible","Plausible")
 
 
-all_number_of_plausible_viral_loads_day_results = all_health_facility_vl %>% filter(plausible_viral_load == "Plausible") %>% nrow()
+# all_number_of_plausible_viral_loads_day_results = all_health_facility_vl %>% filter(plausible_viral_load == "Plausible") %>% nrow()
 number_of_plausible_vl_earliest = vl_earlier_than_censor_date %>% filter(plausible_firstdate == "Plausible") %>% nrow()
 
 
-number_of_all_plausible_viral_loads = all_number_of_plausible_viral_loads_day_results + all_patients_with_plausible_vl_timeframe + number_of_plausible_vl_earliest
+number_of_all_plausible_viral_loads =  all_patients_with_plausible_vl_timeframe + number_of_plausible_vl_earliest
 
 
-proportion_of_all_plausible_vl = number_of_all_plausible_viral_loads / number_of_complete_viral_loads * 100
+proportion_of_all_plausible_vl = number_of_all_plausible_viral_loads / nrow(all_health_facility_vl) * 100
 
 #Build plausibility table to be used to display plausible results out of the complete results
 
-# Variable_Names = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescription Made","Drug Adherence")
+
 #  
 # Numerators = c(number_of_plausible_addresses,number_of_plausible_phone_numbers,number_of_plausible_weight_observations,number_of_plausible_viral_loads,number_of_plausible_prescriptions,number_of_patients_with_plausible_adherence)
 #  
@@ -858,18 +877,20 @@ proportion_of_all_plausible_vl = number_of_all_plausible_viral_loads / number_of
 
 #Plausibility All Health Facilities
 #
-numerators_all_plausibility = c(number_of_all_plausible_addresses,number_of_all_plausible_phone_numbers,number_of_all_plausible_weight_observations,number_of_all_plausible_viral_loads,number_of_all_plausible_prescriptions,number_of_all_patients_with_plausible_adherence)
- 
-denominators_all_plausibility = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,number_of_all_complete_viral_loads,number_of_all_complete_prescriptions,number_of_all_patient_adherence_visits)
+Variable_Names = c("Current Patient Physical Address","Patient Mobile Phone Number","Weights of Patient","Heights of Patient","Prescription Made","Drug Adherence","HIV Viral Load")
 
-proportions_all_plausibility = c(proportion_of_all_plausible_addresses,proportion_of_all_plausible_numbers,proportion_all_plausible_weights,proportion_of_all_plausible_vl,all_prescription_plausibility_proportion,proportion_all_plausible_adherence)
+numerators_all_plausibility = c(number_of_all_plausible_addresses,number_of_all_plausible_phone_numbers,number_of_plausible_weight_observations,number_of_all_plausible_height_observations,number_of_all_plausible_viral_loads,number_of_all_plausible_prescriptions,number_of_all_patients_with_plausible_adherence)
+ 
+denominators_all_plausibility = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,all_number_height_encounters_observations,number_of_all_complete_prescriptions,number_of_all_patient_adherence_visits,number_of_all_complete_viral_loads)
+
+proportions_all_plausibility = c(proportion_of_all_plausible_addresses,proportion_of_all_plausible_numbers,proportion_all_plausible_weights,proportion_all_plausible_heights,all_prescription_plausibility_proportion,proportion_all_plausible_adherence,proportion_of_all_plausible_vl)
  
 
 all_plausibility_table = data.frame(Variable_Names,numerators_all_plausibility,denominators_all_plausibility,proportions_all_plausibility, stringsAsFactors = FALSE)
 
-all_plausibility_table$Numerators = as.numeric(all_plausibility_table$Numerators)
-all_plausibility_table$Denominators = as.numeric(all_plausibility_table$Denominators)
-all_plausibility_table$Proportions = as.numeric(all_plausibility_table$Proportions)
+all_plausibility_table$numerators_all_plausibility = as.numeric(all_plausibility_table$numerators_all_plausibility)
+all_plausibility_table$denominators_all_plausibility = as.numeric(all_plausibility_table$denominators_all_plausibility)
+all_plausibility_table$proportions_all_plausibility = as.numeric(all_plausibility_table$proportions_all_plausibility)
 
 
   
@@ -911,7 +932,7 @@ kable(all_encounters_completeness_table, caption = "Completeness of Patient Visi
 ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type)
 
 
-kable(plausibility_table, caption = "Plausibility of Complete Patient Record Variables at a Selected ART Clinic in Malawi", digits = 2)
+kable(all_plausibility_table, caption = "Plausibility of Complete Patient Record Variables at a Selected ART Clinic in Malawi", digits = 2)
 kable(all_plausibility_table, caption = "Plausibility of Complete Patient Record Variables at a Selected ART Clinic in Malawi", digits = 2)
 
 
