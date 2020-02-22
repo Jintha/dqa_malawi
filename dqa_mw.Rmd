@@ -73,7 +73,7 @@ patient_address_healthcenter_limbe_df = fread("~/Box Sync/quantitative_data/pati
 
 patient_address_healthcenter_mapale_df = fread("~/Box Sync/quantitative_data/patient_address/Health Center/mzuzu_mapale_HC_addresses.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", patient_id, sep="_"))
 
-
+#Read vitals dataframes
 patient_vitals_district_mangochi_df = fread("~/Box Sync/quantitative_data/patient_weight_height/District/mangochi_vitals.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Mangochi") %>% mutate(unique_patient_id = paste("mh", patient_id, sep="_"))
 
 patient_vitals_district_nkhatabay_df = fread("~/Box Sync/quantitative_data/patient_weight_height/District/nkhatabay_vitals.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Nkhatabay") %>% mutate(unique_patient_id = paste("nb", patient_id, sep="_"))
@@ -103,7 +103,12 @@ patient_vitals_healthcenter_kawale_df = fread("~/Box Sync/quantitative_data/pati
 
 patient_vitals_healthcenter_mzuzu_df = fread("~/Box Sync/quantitative_data/patient_weight_height/Health Center/mzuzu_mapale_vitals.csv") %>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", patient_id, sep="_"))
 
+patient_vitals_healthcenter_mzuzu_df$encounter_datetime = as.Date(patient_vitals_healthcenter_mzuzu_df$encounter_datetime, "%m/%d/%y")  
 
+patient_vitals_healthcenter_mzuzu_df$encounter_datetime = as.character(patient_vitals_healthcenter_mzuzu_df$encounter_datetime)
+
+
+#Read patient drugs data frames
 
 patient_drugs_district_mangochi_df = fread("~/Box Sync/quantitative_data/patient_drugs_taken/District/mangochi_query_drugs2.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Mangochi") %>% mutate(unique_patient_id = paste("mh", patient_id, sep="_"))
 
@@ -149,7 +154,7 @@ patient_drug_adherence_healthcenter_limbe =  fread("~/Box Sync/quantitative_data
 
 patient_drug_adherence_healthcenter_mzuzu_df = fread("~/Box Sync/quantitative_data/patient_drug_adherence/Health Center/mapale_adherence.csv")%>% mutate(health_facility_type = "Health Center") %>% mutate(health_facility_name = "Mapale") %>% mutate(unique_patient_id = paste("map", person_id, sep="_"))
 
-
+#Read patient viral loads dataframes
 
 patient_vl_district_mangochi_df = fread("~/Box Sync/quantitative_data/hiv_viral_load/District/mangochi_VL.csv") %>% mutate(health_facility_type = "District") %>% mutate(health_facility_name = "Mangochi") %>% mutate(unique_patient_id = paste("mh", patient_id, sep="_"))
 
@@ -194,6 +199,8 @@ all_health_facility_vl = rbindlist(patient_vl_list, use.names = TRUE,fill=TRUE)
 
 all_study_patients = all_health_facility_addresses %>% unique.data.frame()
 total_number_of_all_patients = nrow(all_study_patients)
+all_vl_patients_enocunters = all_health_facility_addresses %>% filter(health_facility_name != "Mapale" & health_facility_name != "MCH" )%>% unique.data.frame()
+total_number_of_all_patients_vl = nrow(all_vl_patients_enocunters)
 
 #Patient visits. Currently using patient visits because that is the highest encounter type.This will be replaced by HIV reception encounter since some visits are guardian visits where the patient is not present and hence will not have a weight encounter.
 all_health_facility_vitals$encounter_datetime = as.Date(all_health_facility_vitals$encounter_datetime) 
@@ -236,19 +243,7 @@ proportion_weight_encounters = total_number_of_weight_visits / total_number_of_p
   
 proportion_all_complete_weight_documentation = all_number_of_complete_weight_observations / total_number_of_patient_visits  * 100
 
-# library(devtools)
-# install_github("emwozniak/Table1")
-# library(Table1)
-# 
-# make.table(dat          = all_weight_encounters,
-#            strat        = "complete_weight",
-#            cat.varlist  = c("health_facility_type", "complete_weight"),
-#            cat.rmstat   = list(c("row"), c("col")),
-#            cat.ptype    = c("chisq"),
-#            output       = "html")
 
-
-  
 #Height observation for BMI calculation. The assumption is that every patient should have one height observation.
 
 all_height_encounters = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(height != "NULL") %>% group_by(encounter_datetime,unique_patient_id) %>% slice(1)
@@ -268,7 +263,7 @@ all_health_facility_drugs$start_date_new = as.Date(all_health_facility_drugs$sta
 
 prescription_encounter_observations = all_health_facility_drugs %>% filter(date(start_date_new) >= "2017-01-01") %>%  inner_join(.,study_patient_visits, by = "unique_patient_id")   
 
-prescription_encounters = prescription_encounter_observations %>%  group_by(unique_patient_id,health_facility_name.x) %>%  slice(1)
+prescription_encounters = prescription_encounter_observations %>% filter(start_date_new == encounter_datetime) %>% group_by(unique_patient_id,encounter_datetime) %>% slice(1)
 
 #prescription_encounters_b = all_health_facility_drugs %>% filter(date(start_date_new) >= "2017-01-01") %>% group_by(unique_patient_id) %>% slice(1)
 
@@ -357,11 +352,39 @@ all_proportion_adherence = number_of_all_patients_with_complete_adherence / numb
  #The tables here from one clinic only. The others are being uploaded.
 #The denominator here will be total number of patients in the study. The assumption is that all the study patients should have at least one viral load encounter by the time of the study. We shall consider patients that had a viral load even before the study period since this is the only documented viral load observation.
 
+#We want to see how viral loads are collected at each facility. We can left join or use an iteration. I will use left join
+
+pats_with_vl = left_join(all_study_patients,patient_vl_encounters, by = "unique_patient_id") %>%  group_by(unique_patient_id) %>% slice(1)
+ # label the fields with vl as patients with vl, otherwise label them as no result
+
+pats_with_vl$recorded = "VL Result Received"
+pats_with_vl$recorded = ifelse(pats_with_vl$patient_VL_results == "NULL","Waiting for result","VL Result Received")
+
+bbvl = pats_with_vl %>% select(unique_patient_id,recorded,health_facility_name,patient_VL_results)
+#Replace the NAs with a Not requested value
+bbvl$recorded[is.na(bbvl$recorded)] <- 'Not requested'
+
+#remove the value modifiers in the viral load results
+bbvl$patient_VL_results = str_replace(bbvl$patient_VL_results, "=","")
+bbvl$patient_VL_results = str_replace(bbvl$patient_VL_results, "<","")
+bbvl$patient_VL_results = str_replace(bbvl$patient_VL_results, ">","")
+
+#change the healthfacility_name and the recorded into factors. After changing them, then plot the factors into bargraphs and fill them with the different types of VL. That way you will see which health facilities actually had their VL filled and which ones did not.
+#Point is to validate the viral load observations
+
+bbvl$health_facility_name = as.factor(bbvl$health_facility_name)
+bbvl$recorded = as.factor(bbvl$recorded)
+bbvl$patient_VL_results = as.numeric(bbvl$patient_VL_results)
+
+
+
 patient_vl_encounters = inner_join(all_study_patients, all_health_facility_vl, by = "unique_patient_id") %>% group_by(unique_patient_id,patient_visit_date) %>% slice(1)
 
+
+#
 number_of_vl_visits = nrow(patient_vl_encounters)
 
-proportion_of_vl_encounters = number_of_vl_visits / total_number_of_all_patients * 100
+proportion_of_vl_encounters = number_of_vl_visits / total_number_of_all_patients_vl * 100
 
 total_number_vl_all_patients = all_health_facility_vl %>% nrow()
 # Viral load observations completeness
@@ -404,7 +427,7 @@ variable_names_encounters = c("Current Patient Address","Patient Mobile Phone Nu
 
 encounter_numerators  = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,total_number_of_weight_visits,total_number_of_height_visits,number_of_prescription_encounters,number_of_adherence_visits,number_of_vl_visits)
 
-encounter_denominators = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_all_patients)
+encounter_denominators = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_all_patients_vl)
 
 proportion_encounters = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_weight_encounters,proportion_height_encounters, proportion_drug_encounters, proportion_adherence_encounters, proportion_of_vl_encounters) 
 
@@ -586,7 +609,7 @@ proportion_of_all_plausible_addresses = number_of_all_plausible_addresses / numb
 
 all_health_facility_addresses$plausible_phone_number = ifelse(str_length(all_health_facility_addresses$cell_number) == 10,"Plausible","Not Plausible")
 
-
+#Atemporal plausibility - checking the range of possible values
 number_of_all_plausible_phone_numbers = all_health_facility_addresses %>% filter(plausible_phone_number == "Plausible") %>% nrow()
 
 
@@ -613,7 +636,8 @@ study_period_vitals = all_health_facility_vitals %>% filter(encounter_datetime >
 pat_weight_vector = study_period_vitals$weight
 pat_height_vector = study_period_vitals$height
 
-
+#Atemporal plausibility checking weight or height range values
+#
 if(find.file("study_period_vitals.csv") == "study_period_vitals.csv")
 {
 
@@ -642,6 +666,7 @@ study_period_vitals = mutate(study_period_vitals, study_age_in_months = study_pe
 write.csv(study_period_vitals, file = "study_period_vitals.csv")
 }
 
+#Atemporal plausibility checking weight values with weight for age
 
 weight_height_lookup_table = fread("~/Dropbox/dissertation_data_analysis/wtht_rangecheck.csv", col.names = c("age_in_months", "sex","low_height", "high_height", "low_weight", "high_weight"))
 
@@ -705,6 +730,7 @@ all_health_facility_drugs$regimen_category = as.factor(all_health_facility_drugs
 # how to handle now ARVs? Compile a list of ARVs. Filter only those
 
 list_of_arv_drugs = c("Etravirine 100mg","d4T (Stavudine 40mg tablet","LPV/r (Lopinavir and Ritonavir syrup)" ,"d4T (Stavudine 30mg tablet)","Ritonavir 100mg","Dolutegravir (50mg tablet)","TDF300/3TC300 + LPV/r200/50","NVP (Nevirapine syrup 1mL/dose in 100mL bottle)","ABC (Abacavir 300mg tablet)","NVP (Nevirapine 50 mg tablet)","ATV/(Atazanavir)","LPV/r (Lopinavir and Ritonavir 100/25mg tablet)" , "AZT/3TC/TDF/LPV/r","AZT (Zidovudine 300mg tablet)","ABC/3TC (Abacavir and Lamivudine 60/30mg tablet)","LS30 (Stavudine and Lamivudine 30mg tablet)","LPV/r (Lopinavir and Ritonavir 200/50mg tablet)","d4T/3TC/EFV (Stavudine Lamvudine Efavirenz)","TDF (Tenofavir 300 mg tablet)","TDF300/3TC300/DTG50","EFV (Efavirenz 200mg tablet)","Coviro40 (Lamivudine + Stavudine 150/40mg tablet)","AZT/3TC (Zidovudine and Lamivudine 60/30 tablet)","Clotrimazole pessaries","TMP/SMX (Cotrimoxazole 240mg tablet)","TMP/SMX (Cotrimoxazole 800/160mg tablet)","TMP/SMX (Cotrimoxazole 200/40mg tablet)","AZT/3TC/NVP","Coviro30 (Lamivudine + Stavudine 150/30 mg tablet)","ABC/3TC (Abacavir and Lamivudine 600/300mg tablet)","AZT/3TC (Zidovudine and Lamivudine 300/150mg)","ATV/r (Atazanavir 300mg/Ritonavir 100mg)","EFV (Efavirenz 600mg tablet)","AZT/3TC/NVP (60/30/50mg tablet)","Cotrimoxazole (1920mg)","d4T/3TC (Stavudine Lamivudine 6/30mg tablet)","TMP/SMX (Cotrimoxazole 400/80mg tablet)","NVP (Nevirapine 200 mg tablet)","Triomune baby (d4T/3TC/NVP 6/30/50mg tablet)","TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet","Cotrimoxazole (480mg tablet)","Cotrimoxazole (960mg)","d4T/3TC (Stavudine Lamivudine 30/150 tablet)","TDF/3TC/EFV (300/300/600mg tablet)","AZT/3TC/NVP (300/150/200mg tablet)","d4T/3TC/NVP (30/150/200mg tablet)")                                                                                                                                                  
+#Atemporal plausibility searching for arv dispensations within expected quantities of an average of 3 month dispensations
 
 arv_prescription_observations = prescription_encounter_observations %>% filter(name %in% list_of_arv_drugs) %>% group_by(name,start_date,unique_patient_id) %>% slice(1)
 
@@ -716,16 +742,13 @@ arv_prescription_observations$plausible_observations = ifelse(arv_prescription_o
 
 
 
-
-
-
 number_of_all_plausible_prescriptions = arv_prescription_observations %>% filter(plausible_observations == "Plausible") %>% nrow()
 
 
 all_prescription_plausibility_proportion = number_of_all_plausible_prescriptions / number_of_arv_prescription_observations  *100
 
 
-#Plausible Adherence
+#Plausible Adherence should (Atemporal plausibility checking the range of possible plausibility)
 #
 all_health_facility_adherence$adherence_in_percentage = as.numeric(all_health_facility_adherence$adherence_in_percentage)
 
@@ -745,6 +768,8 @@ proportion_all_plausible_adherence = number_of_all_patients_with_plausible_adher
 #Several categories. Select patients whose have a viral load start date is less than 6 months or more than a year after their ART start date. Check when Viral load measurement started as possible earliest date to avoid very long periods.
 #
 
+#Atemporal plausibility - range of dates
+
 # viral_load_data_table_qech$patient_ART_start_date = as.Date(viral_load_data_table_qech$patient_ART_start_date, "%Y-%m-%d")
 # viral_load_data_table_qech$patient_visit_date = as.Date(viral_load_data_table_qech$patient_visit_date, "%Y-%m-%d %T")
 
@@ -756,7 +781,7 @@ all_health_facility_vl$time_months = interval(
   all_health_facility_vl$patient_visit_date
 ) %/% months(1)
 
-
+#Atemporal plausibility there is a range in the expected date of starting ARVs
 all_months_until_first_vl = all_health_facility_vl %>% group_by(patient_id, ART_start_date) %>% slice(1)
 all_months_until_first_vl$plausible = ifelse((all_months_until_first_vl$time_months >= 6 & all_months_until_first_vl$time_months <= 12), "Plausible","Not Plausible")
 
@@ -765,7 +790,7 @@ all_patients_with_plausible_vl_timeframe = all_months_until_first_vl %>%  filter
 
 #  #check for patients with two or more viral load results on the same day that are different and flag these as "Not Plausible"
 #
-
+#Unique plausibility
 all_health_facility_vl = mutate(all_health_facility_vl, vrl_day_plausible =
                                     "Not Plausible")
 
@@ -820,6 +845,7 @@ return(viral_load_table)
 
 vl_earlier_than_censor_date = all_health_facility_vl
 
+#Temporal plausibility
 vl_earlier_than_censor_date$plausible_firstdate =  ifelse(all_health_facility_vl$patient_visit_date <= "2014-01-01","Not plausible","Plausible")
 
 
@@ -831,6 +857,9 @@ number_of_all_plausible_viral_loads =  all_patients_with_plausible_vl_timeframe 
 
 
 proportion_of_all_plausible_vl = number_of_all_plausible_viral_loads / nrow(all_health_facility_vl) * 100
+
+#Temporal plausibility - patients with viral load date earlier than start date
+
 
 #Build plausibility table to be used to display plausible results out of the complete results
 
@@ -864,7 +893,16 @@ fwgtsd   <- sd(na.omit(study_period_vitals$weight_new))
 fhgtmean <- mean(na.omit(study_period_vitals$height_new))
 fhgtsd   <- sd(na.omit(study_period_vitals$height_new))
 
-  
+
+# ggplot(bbvl, aes(x = health_facility_name)) +
+#   geom_bar(aes(y = (..count..)/sum(..count..), fill= recorded)) +
+#   geom_text(aes(y = ((..count..)/sum(..count..)),fill=recorded, label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
+#   scale_y_continuous(labels = percent) +
+#   labs(title = "2017 to 2018 Health Facility Patient Viral Load Observations", y = "Percent", x = "Health Facility Name") + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
+
+
+
+
 ```
 
 ### Results
@@ -896,8 +934,13 @@ kable(number_of_patient_visits_per_health_facility, caption = "Number of patient
 kable(all_encounters_completeness_table, caption = "Completeness of Patient Visits Based on 90-90-90 Encounters at Selected Health Facilities",col.names = c("Indicator Name","Numerator Count","Denominator Count","Proportion of Encounters"), digits = 2)
 
 
-ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type)
+ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type) + geom_hline(yintercept = total_number_of_all_patients, color = "yellow", size = 2 )
 
+ggsave("~/Dropbox/dissertation_data_analysis/addresscompleteness.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+#unlink("~/Dropbox/dissertation_data_analysis/addresscompleteness")
 
 
 kable(all_plausibility_table, caption = "Plausibility of Complete Patient Record Variables at Selected ART Clinics in Malawi", digits = 2)
@@ -905,15 +948,40 @@ kable(all_plausibility_table, caption = "Plausibility of Complete Patient Record
 
 ggplot(arv_prescription_observations, aes(health_facility_name.x,quantity)) + geom_boxplot() + labs(title = "Average quantity of drugs dispensed at ART clinics", x = "Health Facility Name", y = "Quantity of Drugs Dispensed")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
 
+ggsave("~/Dropbox/dissertation_data_analysis/arvsboxplot.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+
 # Distribution of weight observations. We expect the observations to be normally distributed across the clinics.
 
 
 ggplot(study_period_vitals, aes(height_new)) + geom_histogram(aes(y = ..density..)) + stat_function(fun = dnorm, args = c(mean = fhgtmean, sd = fhgtsd), col = "blue", size = 1) + labs(title = "Distribution of Height Values at Selected ART Clinics", x = "Height observations", y = "Density of documented height observations")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) 
 
+ggsave("~/Dropbox/dissertation_data_analysis/weightdistribution.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+
 # Distribution of weight observations. We expect the observations to be normally distributed across the clinics.
 
 ggplot(study_period_vitals, aes(weight_new)) + geom_histogram(aes(y = ..density..)) + stat_function(fun = dnorm, args = c(mean = fwgtmean, sd = fwgtsd), col = "blue", size = 1) + labs(title = "Distribution of Weight Values at Selected ART Clinics", x = "Weight observations", y = "Density of documented weight observations")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
 
+ggsave("~/Dropbox/dissertation_data_analysis/heightdistribution.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+
+ggplot(bbvl, aes(health_facility_name)) + geom_bar(stat="count",aes(fill=recorded)) + geom_text(stat = 'count',aes(label =..count.., vjust = -0.2, fill=recorded)) +
+  labs(title = "2017 to 2018 Health Facility Patient Viral Load Observations", y = "Count", x = "Health Facility Name") + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
+
+
+ggsave("~/Dropbox/dissertation_data_analysis/viral_load_observations.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+
+ggplot(bbvl, aes(health_facility_name, patient_VL_results)) + geom_boxplot() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
 
 ```
 
