@@ -34,11 +34,13 @@ library(doParallel)
 ```
 
 
-## Starting data quality assessment using the kahn framework with the data quality attributes of:
+### Starting data quality assessment using the Kahn harmonized data quality framework with the data quality attributes of:
 
-Completeness: Presence of data for an observation regardless of the structure or value of the data. For VL could be -100 or 700 or 200,000.
-Conformance: Adherence of data to a predefined format or structure of the data. This could be domain of values, for example, VL not having a value of -20 which would be outside the domain of defined values.
-Plausibility: This is the believability or truthfulness of observed data values, for example a patient with two viral load observations of 5000 and 700 within a space of a month. 
+* Completeness: Presence of data for an observation regardless of the structure or value of the data. For VL could be -100 or 700 or 200,000.
+
+* Conformance: Adherence of data to a predefined format or structure of the data. This could be domain of values, for example, VL not having a value of -20 which would be outside the domain of defined values.
+
+* Plausibility: This is the believability or truthfulness of observed data values, for example a patient with two viral load observations of 5000 and 700 on the same day will be implausible. We have 3 types of viral load that we are analyzing namely Unique plausibility, Temporal plausibility and Atemporal plausibility.
 
 
 
@@ -246,13 +248,25 @@ proportion_all_complete_weight_documentation = all_number_of_complete_weight_obs
 
 #Height observation for BMI calculation. The assumption is that every patient should have one height observation.
 
-all_height_encounters = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(height != "NULL") %>% group_by(encounter_datetime,unique_patient_id) %>% slice(1)
+#all_patient_study_heights = join all study heights then select those study patients that have heights. So every patient check a height record. Return only the first record of the height.
+#
+
+
+all_height_encounters = all_health_facility_vitals %>% filter(encounter_datetime <= "2017-01-01") %>% filter(height != "NULL") %>% group_by(unique_patient_id) %>% slice(1)
+
+
+patients_with_heights = left_join(all_study_patients,all_height_encounters, by = "unique_patient_id") %>% group_by(unique_patient_id) %>% slice(1)
+
+
+patients_with_heights$pat_heights = ifelse(patients_with_heights$height == "NULL","Incomplete","Complete")
+
+
 
 all_number_height_encounters_observations = all_health_facility_vitals %>% filter(encounter_datetime >= "2017-01-01") %>% filter(height != "NULL") %>% nrow()
 
-total_number_of_height_visits = nrow(all_height_encounters)
+total_number_of_height_visits = patients_with_heights %>% filter(pat_heights =="Complete") %>% nrow()
 
-proportion_height_encounters = total_number_of_height_visits / total_number_of_patient_visits *100
+proportion_height_encounters = total_number_of_height_visits / nrow(all_study_patients) *100
 
 #proportion_of_all_height_observations = all_number_of_height_observations / total_number_of_all_patients * 100
 
@@ -354,6 +368,10 @@ all_proportion_adherence = number_of_all_patients_with_complete_adherence / numb
 
 #We want to see how viral loads are collected at each facility. We can left join or use an iteration. I will use left join
 
+patient_vl_encounters = inner_join(all_study_patients, all_health_facility_vl, by = "unique_patient_id") %>% group_by(unique_patient_id,patient_visit_date) %>% slice(1)
+
+
+
 pats_with_vl = left_join(all_study_patients,patient_vl_encounters, by = "unique_patient_id") %>%  group_by(unique_patient_id) %>% slice(1)
  # label the fields with vl as patients with vl, otherwise label them as no result
 
@@ -378,7 +396,6 @@ bbvl$patient_VL_results = as.numeric(bbvl$patient_VL_results)
 
 
 
-patient_vl_encounters = inner_join(all_study_patients, all_health_facility_vl, by = "unique_patient_id") %>% group_by(unique_patient_id,patient_visit_date) %>% slice(1)
 
 
 #
@@ -422,14 +439,14 @@ all_healthfacility_completeness_table$proportions_all = as.numeric(all_healthfac
 
 #Create Completeness Table for Patient Visits and Encounters
 
-variable_names_encounters = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","Heights of Patient","Prescriptions Made","Drug Adherence", "HIV Viral Load")
+variable_names_encounters = c("Current Patient Address","Patient Mobile Phone Number","Heights of Patient","Weights of Patient","Prescriptions Made","Drug Adherence", "HIV Viral Load")
 
 
-encounter_numerators  = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,total_number_of_weight_visits,total_number_of_height_visits,number_of_prescription_encounters,number_of_adherence_visits,number_of_vl_visits)
+encounter_numerators  = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,total_number_of_height_visits,total_number_of_weight_visits,number_of_prescription_encounters,number_of_adherence_visits,number_of_vl_visits)
 
-encounter_denominators = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_all_patients_vl)
+encounter_denominators = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_all_patients_vl)
 
-proportion_encounters = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_weight_encounters,proportion_height_encounters, proportion_drug_encounters, proportion_adherence_encounters, proportion_of_vl_encounters) 
+proportion_encounters = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_height_encounters,proportion_weight_encounters, proportion_drug_encounters, proportion_adherence_encounters, proportion_of_vl_encounters) 
 
 
 all_encounters_completeness_table = data.frame(variable_names_encounters,encounter_numerators,encounter_denominators,proportion_encounters, stringsAsFactors = FALSE)
@@ -498,8 +515,8 @@ health_center_addresses = all_health_facility_addresses %>% filter(health_facili
 district_addresses = all_health_facility_addresses %>% filter(health_facility_type == "District")
 tertiary_addresses = all_health_facility_addresses %>% filter(health_facility_type == "Tertiary")
 
-agebreaks <- c(0,1,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,500)
-agelabels <- c("0-1","1-4","5-9","10-14","15-19","20-24","25-29","30-34",
+agebreaks <- c(15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,500)
+agelabels <- c("15-19","20-24","25-29","30-34",
                "35-39","40-44","45-49","50-54","55-59","60-64","65-69",
                "70-74","75-79","80-84","85+")
 
@@ -667,6 +684,7 @@ write.csv(study_period_vitals, file = "study_period_vitals.csv")
 }
 
 #Atemporal plausibility checking weight values with weight for age
+#Separate weight checking from height checking
 
 weight_height_lookup_table = fread("~/Dropbox/dissertation_data_analysis/wtht_rangecheck.csv", col.names = c("age_in_months", "sex","low_height", "high_height", "low_weight", "high_weight"))
 
@@ -714,11 +732,49 @@ number_of_plausible_weight_observations = study_period_vitals %>% filter(plausib
 
 proportion_all_plausible_weights = number_of_plausible_weight_observations/total_number_of_weight_visits * 100
 
-# Plausible Height Values
+# Plausible Height Values. Get all the plausible height observations. Group by unique patient and then count only those with plausible heights.
 
-number_of_all_plausible_height_observations = study_period_vitals %>% filter(plausible_height == "Plausible") %>%  nrow()
+patients_with_heights = mutate(patients_with_heights, study_age_in_months = patients_with_heights$age.x*12)  
+patients_with_heights$gender = ifelse(patients_with_heights$gender == "F" | patients_with_heights$gender == "Female", "Female","Male")
 
-proportion_all_plausible_heights = number_of_all_plausible_height_observations/all_number_height_encounters_observations * 100
+new_pat_height_vector = character(nrow(patients_with_heights))
+new_pat_height_vector = patients_with_heights$height
+new_plausible_vitals_height = character(nrow(patients_with_heights))
+
+if(find.file("patients_with_heights.csv") == "patients_with_heights.csv"){
+  patients_with_heights = fread("patients_with_heights.csv")
+}else{
+  
+for(i in 1:nrow(patients_with_heights)){
+if(!is.na(patients_with_heights[i,]$pat_heights)){
+#check age first, then look up values
+if(patients_with_heights[i,]$study_age_in_months <= 215){
+height_study_age_in_months = patients_with_heights[i,]$study_age_in_months
+new_study_sex = ifelse(patients_with_heights[i,]$gender == "Male",0,1)
+validating_record = weight_height_lookup_table %>% filter(age_in_months == height_study_age_in_months & sex == new_study_sex)
+#
+      print("ndalowa!")
+      print(new_pat_height_vector[i])
+      new_plausible_vitals_height[i] = ifelse(as.numeric(new_pat_height_vector[i]) >= validating_record$low_height & as.numeric(new_pat_height_vector[i]) <= validating_record$high_height,"Plausible","Not Plausible" )
+#}
+}else
+  {# check absolute weight and height for older patients
+    #check absolute height first
+    new_plausible_vitals_height[i] = ifelse(as.numeric(new_pat_height_vector[i]) >= 10 & as.numeric(new_pat_height_vector[i])<= 200,"Plausible","Not Plausible")
+  }
+}else
+{
+  print("No height collected")
+}
+}
+patients_with_heights$plausible_height = new_plausible_vitals_height  
+write.csv(patients_with_heights, file = "patients_with_heights.csv")  
+}
+
+
+number_of_all_plausible_height_observations = patients_with_heights %>% filter(plausible_height == "Plausible") %>% nrow()
+
+proportion_all_plausible_heights = number_of_all_plausible_height_observations/total_number_of_height_visits * 100
 
 
 #Plausible Drugs
@@ -774,7 +830,7 @@ proportion_all_plausible_adherence = number_of_all_patients_with_plausible_adher
 # viral_load_data_table_qech$patient_visit_date = as.Date(viral_load_data_table_qech$patient_visit_date, "%Y-%m-%d %T")
 
 all_health_facility_vl$ART_start_date  = as.Date(all_health_facility_vl$ART_start_date, "%Y-%m-%d")
-all_health_facility_vl$patient_visit_date  = as.Date(all_health_facility_vl$patient_visit_date, "%Y-%m-%d %T")
+all_health_facility_vl$patient_visit_date  = as.Date(all_health_facility_vl$patient_visit_date, "%Y-%m-%d")
 
 all_health_facility_vl$time_months = interval(
   all_health_facility_vl$ART_start_date,
@@ -786,7 +842,7 @@ all_months_until_first_vl = all_health_facility_vl %>% group_by(patient_id, ART_
 all_months_until_first_vl$plausible = ifelse((all_months_until_first_vl$time_months >= 6 & all_months_until_first_vl$time_months <= 12), "Plausible","Not Plausible")
 
 
-all_patients_with_plausible_vl_timeframe = all_months_until_first_vl %>%  filter(time_months == "Plausible") %>% nrow()
+vl_atemporal_plausibility = all_months_until_first_vl %>%  filter(plausible == "Plausible") %>% nrow()
 
 #  #check for patients with two or more viral load results on the same day that are different and flag these as "Not Plausible"
 #
@@ -838,22 +894,27 @@ return(viral_load_table)
 #registerDoParallel(cores=4)
 
 # if(find.file("viral_load_table.csv") =="viral_load_table.csv"){
-#   viral_load_table = fread("viral_load_table.csv")
+#   all_health_facility_vl_duplicates = fread("viral_load_table.csv")
 # }else{
-# all_health_facility_vl = plausible_viral_loads_day_results(all_health_facility_vl)  
+#   all_health_facility_vl_duplicates = plausible_viral_loads_day_results(all_health_facility_vl)  
 # }
 
+#vl_unique_plausibility = all_health_facility_vl_duplicates %>% filter(vrl_day_plausible == "Plausible") %>% nrow
+vl_unique_plausibility = 0
+
+#=====================================================================================
+#Temporal plausibility
 vl_earlier_than_censor_date = all_health_facility_vl
 
-#Temporal plausibility
+
 vl_earlier_than_censor_date$plausible_firstdate =  ifelse(all_health_facility_vl$patient_visit_date <= "2014-01-01","Not plausible","Plausible")
 
 
 # all_number_of_plausible_viral_loads_day_results = all_health_facility_vl %>% filter(plausible_viral_load == "Plausible") %>% nrow()
-number_of_plausible_vl_earliest = vl_earlier_than_censor_date %>% filter(plausible_firstdate == "Plausible") %>% nrow()
+vl_temporal_plausibility = vl_earlier_than_censor_date %>% filter(plausible_firstdate == "Plausible") %>% group_by(unique_patient_id) %>% slice(1) %>% nrow()
 
 
-number_of_all_plausible_viral_loads =  all_patients_with_plausible_vl_timeframe + number_of_plausible_vl_earliest
+number_of_all_plausible_viral_loads =  vl_temporal_plausibility + vl_atemporal_plausibility + vl_unique_plausibility
 
 
 proportion_of_all_plausible_vl = number_of_all_plausible_viral_loads / nrow(all_health_facility_vl) * 100
@@ -865,7 +926,7 @@ proportion_of_all_plausible_vl = number_of_all_plausible_viral_loads / nrow(all_
 
 
 #
-variable_names_plausibility = c("Current Patient Physical Address","Patient Mobile Phone Number","Weights of Patient","Heights of Patient","Prescription Made","Drug Adherence","HIV Viral Load")
+variable_names_plausibility = c("Current Patient Physical Address","Patient Mobile Phone Number","Weights of Patient","Heights of Patient","Prescription Made","Drug Adherence","Unique HIV Viral Load","Atemporal HIV Viral Load","Temporal HIV Viral Load")
 
 numerators_all_plausibility = c(number_of_all_plausible_addresses,
                                 number_of_all_plausible_phone_numbers,
@@ -873,11 +934,28 @@ numerators_all_plausibility = c(number_of_all_plausible_addresses,
                                 number_of_all_plausible_height_observations,
                                 number_of_all_plausible_prescriptions,
                                 number_of_all_patients_with_plausible_adherence,
-                                number_of_all_plausible_viral_loads)
+                                vl_unique_plausibility,vl_atemporal_plausibility,
+                                vl_temporal_plausibility)
  
-denominators_all_plausibility = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,all_number_height_encounters_observations,number_of_arv_prescription_observations,number_of_all_patient_adherence_visits,number_of_all_complete_viral_loads)
+denominators_all_plausibility = c(number_of_all_complete_addresses,
+                                  number_of_all_complete_phone_numbers,
+                                  all_number_of_complete_weight_observations,
+                                  total_number_of_height_visits,
+                                  number_of_arv_prescription_observations,
+                                  number_of_all_patient_adherence_visits,
+                                  number_of_vl_visits,
+                                  number_of_vl_visits,
+                                  number_of_vl_visits)
 
-proportions_all_plausibility = c(proportion_of_all_plausible_addresses,proportion_of_all_plausible_numbers,proportion_all_plausible_weights,proportion_all_plausible_heights,all_prescription_plausibility_proportion,proportion_all_plausible_adherence,proportion_of_all_plausible_vl)
+proportions_all_plausibility = c(proportion_of_all_plausible_addresses,
+                                 proportion_of_all_plausible_numbers,
+                                 proportion_all_plausible_weights,
+                                 proportion_all_plausible_heights,
+                                 all_prescription_plausibility_proportion,
+                                 proportion_all_plausible_adherence,
+                                 (vl_unique_plausibility/number_of_vl_visits*100),
+                                 (vl_atemporal_plausibility/number_of_vl_visits*100),
+                                 (vl_temporal_plausibility/number_of_vl_visits*100))
  
 
 all_plausibility_table = data.frame(variable_names_plausibility,numerators_all_plausibility,denominators_all_plausibility,proportions_all_plausibility, stringsAsFactors = FALSE)
@@ -893,14 +971,7 @@ fwgtsd   <- sd(na.omit(study_period_vitals$weight_new))
 fhgtmean <- mean(na.omit(study_period_vitals$height_new))
 fhgtsd   <- sd(na.omit(study_period_vitals$height_new))
 
-
-# ggplot(bbvl, aes(x = health_facility_name)) +
-#   geom_bar(aes(y = (..count..)/sum(..count..), fill= recorded)) +
-#   geom_text(aes(y = ((..count..)/sum(..count..)),fill=recorded, label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
-#   scale_y_continuous(labels = percent) +
-#   labs(title = "2017 to 2018 Health Facility Patient Viral Load Observations", y = "Percent", x = "Health Facility Name") + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
-
-
+#kable(all_healthfacility_completeness_table, caption = "Completeness of Documented Patient Records at Selected ART Clinics",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
 
 
 ```
@@ -924,29 +995,26 @@ kable(study_patients_at_district_hospitals, caption = "Table 1: Gender and Age b
 
 kable(study_patients_at_tertiary, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records at Tertiary Hospitals", col.names = NA)
 
-
-
-#kable(all_healthfacility_completeness_table, caption = "Completeness of Documented Patient Records at Selected ART Clinics",col.names = c("Variable Name","Numerator Count","Denominator Count","Completeness Proportion"), digits = 2)
  
-kable(number_of_patient_visits_per_health_facility, caption = "Number of patient visits by health facility name and health facility type")
+kable(number_of_patient_visits_per_health_facility, caption = "Number of patient visits by health facility name and health facility type (Jan 2017 to Dec 2018)")
 
 
 kable(all_encounters_completeness_table, caption = "Completeness of Patient Visits Based on 90-90-90 Encounters at Selected Health Facilities",col.names = c("Indicator Name","Numerator Count","Denominator Count","Proportion of Encounters"), digits = 2)
 
 
-ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type) + geom_hline(yintercept = total_number_of_all_patients, color = "yellow", size = 2 )
+ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type) 
+
+#+ geom_hline(yintercept = total_number_of_all_patients, color = "yellow", size = 2 )
 
 ggsave("~/Dropbox/dissertation_data_analysis/addresscompleteness.png", plot = last_plot(), device = "png", path = NULL,
   scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
   dpi = 300, limitsize = TRUE)
 
-#unlink("~/Dropbox/dissertation_data_analysis/addresscompleteness")
-
 
 kable(all_plausibility_table, caption = "Plausibility of Complete Patient Record Variables at Selected ART Clinics in Malawi", digits = 2)
 
 
-ggplot(arv_prescription_observations, aes(health_facility_name.x,quantity)) + geom_boxplot() + labs(title = "Average quantity of drugs dispensed at ART clinics", x = "Health Facility Name", y = "Quantity of Drugs Dispensed")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
+ggplot(arv_prescription_observations, aes(health_facility_name.x,quantity)) + geom_boxplot() + labs(title = "Average quantity of drugs dispensed at ART clinics", x = "Health Facility Name", y = "Quantity of Drugs Dispensed")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())  
 
 ggsave("~/Dropbox/dissertation_data_analysis/arvsboxplot.png", plot = last_plot(), device = "png", path = NULL,
   scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
@@ -973,7 +1041,7 @@ ggsave("~/Dropbox/dissertation_data_analysis/heightdistribution.png", plot = las
 
 
 ggplot(bbvl, aes(health_facility_name)) + geom_bar(stat="count",aes(fill=recorded)) + geom_text(stat = 'count',aes(label =..count.., vjust = -0.2, fill=recorded)) +
-  labs(title = "2017 to 2018 Health Facility Patient Viral Load Observations", y = "Count", x = "Health Facility Name") + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank())
+  labs(title = "2017 to 2018 Health Facility Patient Viral Load Observations", y = "Count", x = "Health Facility Name") + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank(), axis.text.x = element_text( angle=45))
 
 
 ggsave("~/Dropbox/dissertation_data_analysis/viral_load_observations.png", plot = last_plot(), device = "png", path = NULL,
