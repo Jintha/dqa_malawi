@@ -413,6 +413,19 @@ proportion_of_all_complete_vl = number_of_all_complete_viral_loads/total_number_
 
 importance_priorities = fread("~/Dropbox/dissertation_data_analysis/importance_characteristics.csv")
 
+importance_priorities_b = importance_priorities
+
+names(importance_priorities_b) = c("time_completed","vl_plausibility_vs_completeness","vl_completeness_vs_plausibility","vl_plausibility_vs_conformance","vl_conformance_vs_plausibility","vl_conformance_completeness","vl_completeness_vs_conformance","pid_plausibility_vs_completeness","pid_completeness_vs_plausibility","pid_plausibility_vs_conformance","pid_conformance_vs_plausibility","pid_conformance_vs_completeness","pid_completeness_vs_conformance","rete_plausibility_vs_completeness","rete_completeness_vs_plausibility","rete_plausibility_vs_conformance","rete_conformance_vs_plausibility","rete_conformance_vs_completeness","rete_completeness_vs_conformance") 
+
+# Get the linkert responses only
+importance_priorities_c = importance_priorities_b[,2:19]
+
+factoredData = importance_priorities_c %>% mutate_if(is.character,funs(factor(.)))
+bb_new = gather(factoredData,"Question","Ranking")
+ 
+
+
+
 #Build the completeness data tables
 
 ######### 
@@ -1055,6 +1068,12 @@ ggplot(bbvl, aes(health_facility_name, patient_VL_results)) + geom_boxplot() + t
 ggsave("~/Dropbox/dissertation_data_analysis/viral_load_boxplot.png", plot = last_plot(), device = "png", path = NULL,
   scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
   dpi = 300, limitsize = TRUE)
+
+
+ggplot(bb_new) + geom_bar(mapping = aes(x=Question,fill=Ranking)) + scale_x_discrete(breaks=c("ctrl", "trt1", "trt2"),
+                      labels=c("Control", "Treat 1", "Treat 2")) +    coord_flip() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
+labs(title = "Prioritization of Data Quality Characteristics Across Different Purposes of Data Use", y = "Data Quality Characteristics", x = "Count of Data Quality Characteristic Importance Ranking")
+
 
 
 ```
