@@ -1070,10 +1070,14 @@ ggsave("~/Dropbox/dissertation_data_analysis/viral_load_boxplot.png", plot = las
   dpi = 300, limitsize = TRUE)
 
 
-ggplot(bb_new) + geom_bar(mapping = aes(x=Question,fill=Ranking)) + scale_x_discrete(breaks=c("ctrl", "trt1", "trt2"),
-                      labels=c("Control", "Treat 1", "Treat 2")) +    coord_flip() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
-labs(title = "Prioritization of Data Quality Characteristics Across Different Purposes of Data Use", y = "Data Quality Characteristics", x = "Count of Data Quality Characteristic Importance Ranking")
+ggplot(bb_new) + geom_bar(mapping = aes(x=Question,fill=Ranking)) + scale_x_discrete(breaks=c("vl_plausibility_vs_completeness","vl_completeness_vs_plausibility","vl_plausibility_vs_conformance","vl_conformance_vs_plausibility","vl_conformance_completeness","vl_completeness_vs_conformance","pid_plausibility_vs_completeness","pid_completeness_vs_plausibility","pid_plausibility_vs_conformance","pid_conformance_vs_plausibility","pid_conformance_vs_completeness","pid_completeness_vs_conformance","rete_plausibility_vs_completeness","rete_completeness_vs_plausibility","rete_plausibility_vs_conformance","rete_conformance_vs_plausibility","rete_conformance_vs_completeness","rete_completeness_vs_conformance") ,
+                      labels=c("Is plausibility of higher priority than completeness for Viral load monitoring?", "Is completeness of higher priority than plausibility for Viral load monitoring?", "Is plausibility of higher priority than conformance when for Viral load monitoring?","Is conformance of higher priority than plausibility for Viral load monitoring?","Is conformance of higher priority than completeness for Viral load monitoring","Is completeness of higher priority than conformance for Viral load monitoring","Is plausibility of higher priority than completeness for patient identification?", "Is completeness of higher priority than plausibility for patient identification?", "Is plausibility of higher priority than conformance for patient identification?","Is conformance of higher priority than plausibility for patient identification?","Is conformance of higher priority than completeness for patient identification","Is completeness of higher priority than conformance for patient identification","Is plausibility of higher priority than completeness for patient retention?", "Is completeness of higher priority than plausibility for patient retention?", "Is plausibility of higher priority than conformance for patient retention?","Is conformance of higher priority than plausibility for patient retention?","Is conformance of higher priority than completeness for patient retention","Is completeness of higher priority than conformance for patient retention")) +    coord_flip() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
+labs(title = "Stakeholder Data Quality Characteristics Priorities", x = "Data Quality Characteristic Priority Question", y = "Count of Data Quality Characteristic Importance Ranking")
 
+
+ggsave("~/Dropbox/dissertation_data_analysis/importance_priorities.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1.5, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300)
 
 
 ```
