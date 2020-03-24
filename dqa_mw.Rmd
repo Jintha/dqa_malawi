@@ -370,6 +370,20 @@ all_proportion_adherence = number_of_all_patients_with_complete_adherence / numb
 
 patient_vl_encounters = inner_join(all_study_patients, all_health_facility_vl, by = "unique_patient_id") %>% group_by(unique_patient_id,patient_visit_date) %>% slice(1)
 
+#Read new dataset for health facilities. For LH-KCH, ZCH, MCH, and QECH
+
+
+new_viral_load_dataset = fread("new_viral_load_data.csv")
+new_viral_load_dataset = mutate(new_viral_load_dataset, health_facility_type = "Tertiary")
+new_viral_load_dataset$startdate = as.Date(new_viral_load_dataset$startdate,"%d-%b-%y" )
+new_viral_load_dataset$bleeddate = as.Date(new_viral_load_dataset$bleeddate,"%d-%b-%y" )
+new_viral_load_dataset = new_viral_load_dataset %>% filter(health_facility_name != "MPC") %>% filter(bleeddate <="2018-12-31")
+
+
+# since the viral loads are only for 3 health facilities, all of them being central hospitals
+#Mzuzu central hospital not available
+ 
+all_study_patients_selected = all_study_patients %>% filter(all_study_patients$health_facility_type == "Tertiary" & all_study_patients$health_facility_name !="MCH")
 
 
 pats_with_vl = left_join(all_study_patients,patient_vl_encounters, by = "unique_patient_id") %>%  group_by(unique_patient_id) %>% slice(1)
@@ -395,9 +409,6 @@ bbvl$recorded = as.factor(bbvl$recorded)
 bbvl$patient_VL_results = as.numeric(bbvl$patient_VL_results)
 
 
-
-
-
 #
 number_of_vl_visits = nrow(patient_vl_encounters)
 
@@ -408,6 +419,15 @@ total_number_vl_all_patients = all_health_facility_vl %>% nrow()
 all_health_facility_vl$complete_viral_load =  ifelse((all_health_facility_vl$patient_VL_results != "" & all_health_facility_vl$patient_VL_results != "NULL"), "Complete","Incomplete") 
 number_of_all_complete_viral_loads = all_health_facility_vl %>% filter(complete_viral_load == "Complete")  %>% nrow()
 proportion_of_all_complete_vl = number_of_all_complete_viral_loads/total_number_vl_all_patients * 100
+#Calculate completeness for VL for new dataset of LH,QECH and ZCH
+
+number_of_tertiary_vl = new_viral_load_dataset %>% filter(bleeddate >= "2017-01-01") %>%  group_by(unique_patient_id) %>% slice(1) %>% nrow()
+
+tertiary_study_patients =  left_join(all_study_patients_selected,all_health_facility_vitals, by = "unique_patient_id") %>%  filter(encounter_datetime >= "2017-01-01") %>% group_by(unique_patient_id) %>% slice(1) %>% nrow()
+
+proportion_of_central_hospital_vl = number_of_tertiary_vl/tertiary_study_patients * 100
+
+
  
 #Read table of importance characteristics to count priority of importance based on 90-90-90
 
@@ -422,7 +442,9 @@ importance_priorities_c = importance_priorities_b[,2:19]
 
 factoredData = importance_priorities_c %>% mutate_if(is.character,funs(factor(.)))
 bb_new = gather(factoredData,"Question","Ranking")
- 
+
+
+
 
 
 
@@ -433,11 +455,26 @@ bb_new = gather(factoredData,"Question","Ranking")
 
 variable_names_all = c("Current Patient Address","Patient Mobile Phone Number","Weights of Patient","HIV Viral Load","Prescriptions Made","Drug Adherence")
 
-numerators_all = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,all_number_of_complete_weight_observations,number_of_all_complete_viral_loads,number_of_all_complete_prescriptions,number_of_all_patients_with_complete_adherence)
+numerators_all = c(number_of_all_complete_addresses,
+                   number_of_all_complete_phone_numbers,
+                   all_number_of_complete_weight_observations,
+                   number_of_all_complete_viral_loads,
+                   number_of_all_complete_prescriptions,
+                   number_of_all_patients_with_complete_adherence)
 
-denominators_all = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_vl_all_patients,total_number_of_all_prescriptions,number_of_all_patient_adherence_visits)
+denominators_all = c(total_number_of_all_patients,
+                     total_number_of_all_patients,
+                     total_number_of_patient_visits,
+                     total_number_vl_all_patients,
+                     total_number_of_all_prescriptions,
+                     number_of_all_patient_adherence_visits)
 
-proportions_all = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_all_complete_weight_documentation,proportion_of_all_complete_vl,all_prescription_completeness_proportion,all_proportion_adherence)
+proportions_all = c(all_address_completeness_proportion,
+                    all_phone_number_proportion,
+                    proportion_all_complete_weight_documentation,
+                    proportion_of_all_complete_vl,
+                    all_prescription_completeness_proportion,
+                    all_proportion_adherence)
  
 all_healthfacility_completeness_table = data.frame(variable_names_all,numerators_all,denominators_all,proportions_all, stringsAsFactors = FALSE)
  
@@ -452,14 +489,41 @@ all_healthfacility_completeness_table$proportions_all = as.numeric(all_healthfac
 
 #Create Completeness Table for Patient Visits and Encounters
 
-variable_names_encounters = c("Current Patient Address","Patient Mobile Phone Number","Heights of Patient","Weights of Patient","Prescriptions Made","Drug Adherence", "HIV Viral Load")
+variable_names_encounters = c("Current Patient Address",
+                              "Patient Mobile Phone Number",
+                              "Heights of Patient",
+                              "Weights of Patient",
+                              "Prescriptions Made",
+                              "Drug Adherence",
+                              "HIV Viral Load","Tertiary hospital VL")
 
 
-encounter_numerators  = c(number_of_all_complete_addresses,number_of_all_complete_phone_numbers,total_number_of_height_visits,total_number_of_weight_visits,number_of_prescription_encounters,number_of_adherence_visits,number_of_vl_visits)
+encounter_numerators  = c(number_of_all_complete_addresses,
+                          number_of_all_complete_phone_numbers,
+                          total_number_of_height_visits,
+                          total_number_of_weight_visits,
+                          number_of_prescription_encounters,
+                          number_of_adherence_visits,
+                          number_of_vl_visits,
+                          number_of_tertiary_vl)
 
-encounter_denominators = c(total_number_of_all_patients,total_number_of_all_patients,total_number_of_all_patients,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_patient_visits,total_number_of_all_patients_vl)
+encounter_denominators = c(total_number_of_all_patients,
+                           total_number_of_all_patients,
+                           total_number_of_all_patients,
+                           total_number_of_patient_visits,
+                           total_number_of_patient_visits,
+                           total_number_of_patient_visits,
+                           total_number_of_all_patients_vl,
+                           tertiary_study_patients)
 
-proportion_encounters = c(all_address_completeness_proportion,all_phone_number_proportion,proportion_height_encounters,proportion_weight_encounters, proportion_drug_encounters, proportion_adherence_encounters, proportion_of_vl_encounters) 
+proportion_encounters = c(all_address_completeness_proportion,
+                          all_phone_number_proportion,
+                          proportion_height_encounters,
+                          proportion_weight_encounters,
+                          proportion_drug_encounters,
+                          proportion_adherence_encounters,
+                          proportion_of_vl_encounters,
+                          proportion_of_central_hospital_vl) 
 
 
 all_encounters_completeness_table = data.frame(variable_names_encounters,encounter_numerators,encounter_denominators,proportion_encounters, stringsAsFactors = FALSE)
@@ -822,7 +886,7 @@ all_prescription_plausibility_proportion = number_of_all_plausible_prescriptions
 all_health_facility_adherence$adherence_in_percentage = as.numeric(all_health_facility_adherence$adherence_in_percentage)
 
 
-all_health_facility_adherence$plausible_adherence = ifelse(all_health_facility_adherence$adherence_in_percentage >= 95 & all_health_facility_adherence$adherence_in_percentage <= 105, "Plausible","Not plausible")
+all_health_facility_adherence$plausible_adherence = ifelse(all_health_facility_adherence$adherence_in_percentage >= 0 & all_health_facility_adherence$adherence_in_percentage <= 105, "Plausible","Not plausible")
 
 all_patients_with_plausible_adherence = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>%  filter(plausible_adherence == "Plausible") 
 
@@ -850,12 +914,34 @@ all_health_facility_vl$time_months = interval(
   all_health_facility_vl$patient_visit_date
 ) %/% months(1)
 
+
+#Tertiary hospitals
+new_viral_load_dataset_at = new_viral_load_dataset
+
+new_viral_load_dataset_at$time_months = interval(
+  new_viral_load_dataset_at$startdate,
+  new_viral_load_dataset_at$bleeddate
+) %/% months(1)
+
+
+new_viral_load_dataset_at  = new_viral_load_dataset_at %>% group_by(unique_patient_id) %>% slice(1)
+
+
+#order by bleeddate asc group by patient_id and bleeddate slice 1.
+#already in ascending order for bleeddate so I select only the first record for each patient
+#
 #Atemporal plausibility there is a range in the expected date of starting ARVs
 all_months_until_first_vl = all_health_facility_vl %>% group_by(patient_id, ART_start_date) %>% slice(1)
 all_months_until_first_vl$plausible = ifelse((all_months_until_first_vl$time_months >= 6 & all_months_until_first_vl$time_months <= 12), "Plausible","Not Plausible")
 
+new_viral_load_dataset_at$plausible = ifelse((new_viral_load_dataset_at$time_months >= 6 & new_viral_load_dataset_at$time_months <= 12), "Plausible","Not Plausible")
+
+
 
 vl_atemporal_plausibility = all_months_until_first_vl %>%  filter(plausible == "Plausible") %>% nrow()
+
+new_vl_atemporal_plausibility = new_viral_load_dataset_at %>%  filter(plausible == "Plausible") %>% nrow()
+
 
 #  #check for patients with two or more viral load results on the same day that are different and flag these as "Not Plausible"
 #
@@ -920,8 +1006,20 @@ vl_unique_plausibility = 0
 vl_earlier_than_censor_date = all_health_facility_vl
 
 
-vl_earlier_than_censor_date$plausible_firstdate =  ifelse(all_health_facility_vl$patient_visit_date <= "2014-01-01","Not plausible","Plausible")
+vl_earlier_than_censor_date$plausible_firstdate =  ifelse(all_health_facility_vl$patient_visit_date <= "2012-01-01","Not plausible","Plausible")
 
+# Check if there are some tests that were conducted before the time that VL testing started in Malawi
+new_viral_load_dataset_at$plausible_firstdate =  ifelse(new_viral_load_dataset_at$bleeddate < "2012-01-01","Not plausible","Plausible")
+
+# Check if there are tests that have been conducted before a patients started taking ARVs
+# 
+new_viral_load_dataset_at$plausible_bleeddate =  ifelse(new_viral_load_dataset_at$bleeddate < new_viral_load_dataset_at$startdate,"Not plausible","Plausible")
+
+new_temporal_plausibility_censor = new_viral_load_dataset_at %>% filter(plausible_firstdate =="Plausible") %>% nrow()
+
+new_temporal_plausibility_sta_date = new_viral_load_dataset_at %>% filter(plausible_bleeddate =="Plausible") %>% nrow()
+
+new_viral_load_temporal_plausibility = (number_of_tertiary_vl - new_temporal_plausibility_sta_date) + new_temporal_plausibility_censor
 
 # all_number_of_plausible_viral_loads_day_results = all_health_facility_vl %>% filter(plausible_viral_load == "Plausible") %>% nrow()
 vl_temporal_plausibility = vl_earlier_than_censor_date %>% filter(plausible_firstdate == "Plausible") %>% group_by(unique_patient_id) %>% slice(1) %>% nrow()
@@ -947,8 +1045,8 @@ numerators_all_plausibility = c(number_of_all_plausible_addresses,
                                 number_of_all_plausible_height_observations,
                                 number_of_all_plausible_prescriptions,
                                 number_of_all_patients_with_plausible_adherence,
-                                vl_unique_plausibility,vl_atemporal_plausibility,
-                                vl_temporal_plausibility)
+                                vl_unique_plausibility,new_vl_atemporal_plausibility,
+                                new_viral_load_temporal_plausibility)
  
 denominators_all_plausibility = c(number_of_all_complete_addresses,
                                   number_of_all_complete_phone_numbers,
@@ -956,9 +1054,9 @@ denominators_all_plausibility = c(number_of_all_complete_addresses,
                                   total_number_of_height_visits,
                                   number_of_arv_prescription_observations,
                                   number_of_all_patient_adherence_visits,
-                                  number_of_vl_visits,
-                                  number_of_vl_visits,
-                                  number_of_vl_visits)
+                                  number_of_tertiary_vl,
+                                  number_of_tertiary_vl,
+                                  number_of_tertiary_vl)
 
 proportions_all_plausibility = c(proportion_of_all_plausible_addresses,
                                  proportion_of_all_plausible_numbers,
@@ -966,9 +1064,9 @@ proportions_all_plausibility = c(proportion_of_all_plausible_addresses,
                                  proportion_all_plausible_heights,
                                  all_prescription_plausibility_proportion,
                                  proportion_all_plausible_adherence,
-                                 (vl_unique_plausibility/number_of_vl_visits*100),
-                                 (vl_atemporal_plausibility/number_of_vl_visits*100),
-                                 (vl_temporal_plausibility/number_of_vl_visits*100))
+                                 (vl_unique_plausibility/number_of_tertiary_vl*100),
+                                 (new_vl_atemporal_plausibility/number_of_tertiary_vl*100),
+                                 (new_viral_load_temporal_plausibility/number_of_tertiary_vl*100))
  
 
 all_plausibility_table = data.frame(variable_names_plausibility,numerators_all_plausibility,denominators_all_plausibility,proportions_all_plausibility, stringsAsFactors = FALSE)
@@ -1016,6 +1114,22 @@ kable(all_encounters_completeness_table, caption = "Completeness of Patient Visi
 
 
 ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type) 
+
+
+ 
+
+
+ggplot(cd, aes(x= address_section,  fill = address_value, group=address_value)) + 
+    geom_bar(aes(y = ..prop.., stat = "count"), position = "dodge") + 
+    labs(title = "Completeness of Patient Address Components Documentation",  y = "Percentage of Completeness", fill="Documentation Status", colour = "Documentation Status", x = "Address Components") +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
+facet_grid(.~health_facility_type) +
+scale_y_continuous(labels = scales::percent)
+ 
+ 
+ #geom_text(aes( label = scales::percent(..prop..), y= ..prop.. ), stat= "count", vjust = .5) +
+
+
+
 
 #+ geom_hline(yintercept = total_number_of_all_patients, color = "yellow", size = 2 )
 
@@ -1070,9 +1184,13 @@ ggsave("~/Dropbox/dissertation_data_analysis/viral_load_boxplot.png", plot = las
   dpi = 300, limitsize = TRUE)
 
 
+bb_new$Ranking <- factor(bb_new$Ranking, levels = c("Very important", "Important", "Moderately Important", "Slightly Important", "Not Important")) 
+
 ggplot(bb_new) + geom_bar(mapping = aes(x=Question,fill=Ranking)) + scale_x_discrete(breaks=c("vl_plausibility_vs_completeness","vl_completeness_vs_plausibility","vl_plausibility_vs_conformance","vl_conformance_vs_plausibility","vl_conformance_completeness","vl_completeness_vs_conformance","pid_plausibility_vs_completeness","pid_completeness_vs_plausibility","pid_plausibility_vs_conformance","pid_conformance_vs_plausibility","pid_conformance_vs_completeness","pid_completeness_vs_conformance","rete_plausibility_vs_completeness","rete_completeness_vs_plausibility","rete_plausibility_vs_conformance","rete_conformance_vs_plausibility","rete_conformance_vs_completeness","rete_completeness_vs_conformance") ,
-                      labels=c("Is plausibility of higher priority than completeness for Viral load monitoring?", "Is completeness of higher priority than plausibility for Viral load monitoring?", "Is plausibility of higher priority than conformance when for Viral load monitoring?","Is conformance of higher priority than plausibility for Viral load monitoring?","Is conformance of higher priority than completeness for Viral load monitoring","Is completeness of higher priority than conformance for Viral load monitoring","Is plausibility of higher priority than completeness for patient identification?", "Is completeness of higher priority than plausibility for patient identification?", "Is plausibility of higher priority than conformance for patient identification?","Is conformance of higher priority than plausibility for patient identification?","Is conformance of higher priority than completeness for patient identification","Is completeness of higher priority than conformance for patient identification","Is plausibility of higher priority than completeness for patient retention?", "Is completeness of higher priority than plausibility for patient retention?", "Is plausibility of higher priority than conformance for patient retention?","Is conformance of higher priority than plausibility for patient retention?","Is conformance of higher priority than completeness for patient retention","Is completeness of higher priority than conformance for patient retention")) +    coord_flip() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
-labs(title = "Stakeholder Data Quality Characteristics Priorities", x = "Data Quality Characteristic Priority Question", y = "Count of Data Quality Characteristic Importance Ranking")
+                      labels=c("Is plausibility of higher priority than completeness for Viral load monitoring?", "Is completeness of higher priority than plausibility for Viral load monitoring?", "Is plausibility of higher priority than conformance for Viral load monitoring?","Is conformance of higher priority than plausibility for Viral load monitoring?","Is conformance of higher priority than completeness for Viral load monitoring","Is completeness of higher priority than conformance for Viral load monitoring","Is plausibility of higher priority than completeness for patient identification?", "Is completeness of higher priority than plausibility for patient identification?", "Is plausibility of higher priority than conformance for patient identification?","Is conformance of higher priority than plausibility for patient identification?","Is conformance of higher priority than completeness for patient identification","Is completeness of higher priority than conformance for patient identification","Is plausibility of higher priority than completeness for patient retention?", "Is completeness of higher priority than plausibility for patient retention?", "Is plausibility of higher priority than conformance for patient retention?","Is conformance of higher priority than plausibility for patient retention?","Is conformance of higher priority than completeness for patient retention","Is completeness of higher priority than conformance for patient retention")) +    coord_flip() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
+labs(title = "Stakeholder Data Quality Characteristics Priorities", x = "Data Quality Characteristic Priority Question", y = "Count of Data Quality Characteristic Importance Ranking") + scale_fill_discrete(name="Importance \nRanking",
+                         breaks=c("Very important", "Important", "Moderately Important","Slightly Important","Not Important"),
+                         labels=c("Very important", "Important", "Neither important nor not Important","Not important","Not important at all"))
 
 
 ggsave("~/Dropbox/dissertation_data_analysis/importance_priorities.png", plot = last_plot(), device = "png", path = NULL,
