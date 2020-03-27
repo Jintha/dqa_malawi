@@ -932,9 +932,9 @@ new_viral_load_dataset_at  = new_viral_load_dataset_at %>% group_by(unique_patie
 #
 #Atemporal plausibility there is a range in the expected date of starting ARVs
 all_months_until_first_vl = all_health_facility_vl %>% group_by(patient_id, ART_start_date) %>% slice(1)
-all_months_until_first_vl$plausible = ifelse((all_months_until_first_vl$time_months >= 6 & all_months_until_first_vl$time_months <= 12), "Plausible","Not Plausible")
+all_months_until_first_vl$plausible = ifelse((all_months_until_first_vl$time_months >= 5 & all_months_until_first_vl$time_months <= 36), "Plausible","Not Plausible")
 
-new_viral_load_dataset_at$plausible = ifelse((new_viral_load_dataset_at$time_months >= 6 & new_viral_load_dataset_at$time_months <= 12), "Plausible","Not Plausible")
+new_viral_load_dataset_at$plausible = ifelse((new_viral_load_dataset_at$time_months >= 5 & new_viral_load_dataset_at$time_months <= 36), "Plausible","Not Plausible")
 
 
 
@@ -1113,30 +1113,63 @@ kable(number_of_patient_visits_per_health_facility, caption = "Number of patient
 kable(all_encounters_completeness_table, caption = "Completeness of Patient Visits Based on 90-90-90 Encounters at Selected Health Facilities",col.names = c("Indicator Name","Numerator Count","Denominator Count","Proportion of Encounters"), digits = 2)
 
 
+
+
+
 ggplot(cd) + geom_bar(mapping = aes(x = address_section, fill = address_value), position = "dodge") + labs(title = "Completeness of Patient Address Components Documentation", x = "Patient Address Section", y = "Count of Documented Status", colour = "Documentation Status")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) + facet_grid(.~health_facility_type) 
-
-
- 
-
-
-ggplot(cd, aes(x= address_section,  fill = address_value, group=address_value)) + 
-    geom_bar(aes(y = ..prop.., stat = "count"), position = "dodge") + 
-    labs(title = "Completeness of Patient Address Components Documentation",  y = "Percentage of Completeness", fill="Documentation Status", colour = "Documentation Status", x = "Address Components") +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
-facet_grid(.~health_facility_type) +
-scale_y_continuous(labels = scales::percent)
- 
- 
- #geom_text(aes( label = scales::percent(..prop..), y= ..prop.. ), stat= "count", vjust = .5) +
-
-
-
-
-#+ geom_hline(yintercept = total_number_of_all_patients, color = "yellow", size = 2 )
 
 ggsave("~/Dropbox/dissertation_data_analysis/addresscompleteness.png", plot = last_plot(), device = "png", path = NULL,
   scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
   dpi = 300, limitsize = TRUE)
 
+
+
+ggplot(cd, aes(address_section, fill = address_value)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+    labs(title = "Completeness of Patient Address Components Documentation",  y = "Percentage of Completeness", fill="Documentation Status", colour = "Documentation Status", x = "Address Components") +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
+facet_grid(.~health_facility_type) 
+  
+ggsave("~/Dropbox/dissertation_data_analysis/addresscompleteness2.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+
+bc = cd %>% group_by(health_facility_type,address_section,address_value) %>% 
+ dplyr::summarize(count=n())
+
+#write.csv((bc), file = "bunched_addresses.csv")
+
+new_cd = fread("bunched_addresses.csv")
+new_cd = new_cd %>% mutate_if(is.character,funs(factor(.)))
+
+ggplot(new_cd, aes(x = address_section,y=percentage,  fill = address_value)) + 
+    geom_bar(stat="identity", position="dodge") + geom_text(aes(label = percentage, vjust = -0.5)) +  labs(title = "Completeness of Patient Address Components Documentation",  y = "Percentage of Completeness", fill="Documentation Status", colour = "Documentation Status", x = "Address Components") +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
+facet_grid(.~health_facility_type) 
+   
+ggsave("~/Dropbox/dissertation_data_analysis/addresscompleteness3.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+ggplot(new_cd, aes(x = address_section,y=percentage,  fill = address_value)) + 
+    geom_bar(stat="identity", position="fill") + geom_text(aes(label = percentage, vjust = -0.5)) +  labs(title = "Completeness of Patient Address Components Documentation",  y = "Percentage of Completeness", fill="Documentation Status", colour = "Documentation Status", x = "Address Components") +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
+facet_grid(.~health_facility_type) 
+
+ggsave("~/Dropbox/dissertation_data_analysis/addresscompleteness5.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+
+ggplot(new_cd, aes(x = address_section,y=percentage,  fill = address_value)) + 
+    geom_bar(stat="identity", position="dodge") +  labs(title = "Completeness of Patient Address Components Documentation",  y = "Percentage of Completeness", fill="Documentation Status", colour = "Documentation Status", x = "Address Components") +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
+facet_grid(.~health_facility_type) 
+
+ggsave("~/Dropbox/dissertation_data_analysis/addresscompleteness4.png", plot = last_plot(), device = "png", path = NULL,
+  scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
+  dpi = 300, limitsize = TRUE)
+
+
+#+ geom_hline(yintercept = total_number_of_all_patients, color = "yellow", size = 2 )
 
 kable(all_plausibility_table, caption = "Plausibility of Complete Patient Record Variables at Selected ART Clinics in Malawi", digits = 2)
 
@@ -1188,9 +1221,9 @@ bb_new$Ranking <- factor(bb_new$Ranking, levels = c("Very important", "Important
 
 ggplot(bb_new) + geom_bar(mapping = aes(x=Question,fill=Ranking)) + scale_x_discrete(breaks=c("vl_plausibility_vs_completeness","vl_completeness_vs_plausibility","vl_plausibility_vs_conformance","vl_conformance_vs_plausibility","vl_conformance_completeness","vl_completeness_vs_conformance","pid_plausibility_vs_completeness","pid_completeness_vs_plausibility","pid_plausibility_vs_conformance","pid_conformance_vs_plausibility","pid_conformance_vs_completeness","pid_completeness_vs_conformance","rete_plausibility_vs_completeness","rete_completeness_vs_plausibility","rete_plausibility_vs_conformance","rete_conformance_vs_plausibility","rete_conformance_vs_completeness","rete_completeness_vs_conformance") ,
                       labels=c("Is plausibility of higher priority than completeness for Viral load monitoring?", "Is completeness of higher priority than plausibility for Viral load monitoring?", "Is plausibility of higher priority than conformance for Viral load monitoring?","Is conformance of higher priority than plausibility for Viral load monitoring?","Is conformance of higher priority than completeness for Viral load monitoring","Is completeness of higher priority than conformance for Viral load monitoring","Is plausibility of higher priority than completeness for patient identification?", "Is completeness of higher priority than plausibility for patient identification?", "Is plausibility of higher priority than conformance for patient identification?","Is conformance of higher priority than plausibility for patient identification?","Is conformance of higher priority than completeness for patient identification","Is completeness of higher priority than conformance for patient identification","Is plausibility of higher priority than completeness for patient retention?", "Is completeness of higher priority than plausibility for patient retention?", "Is plausibility of higher priority than conformance for patient retention?","Is conformance of higher priority than plausibility for patient retention?","Is conformance of higher priority than completeness for patient retention","Is completeness of higher priority than conformance for patient retention")) +    coord_flip() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank(), legend.title = element_blank()) +
-labs(title = "Stakeholder Data Quality Characteristics Priorities", x = "Data Quality Characteristic Priority Question", y = "Count of Data Quality Characteristic Importance Ranking") + scale_fill_discrete(name="Importance \nRanking",
+labs(title = "Stakeholder Data Quality \nCharacteristics Priorities", x = "Data Quality Characteristic Priority Question", y = "Count of Data Quality Characteristic Importance Ranking") + scale_fill_discrete(name="Importance \nRanking",
                          breaks=c("Very important", "Important", "Moderately Important","Slightly Important","Not Important"),
-                         labels=c("Very important", "Important", "Neither important nor not Important","Not important","Not important at all"))
+                         labels=c("Very important", "Important", "Moderately Important","Slightly Important","Not important"))
 
 
 ggsave("~/Dropbox/dissertation_data_analysis/importance_priorities.png", plot = last_plot(), device = "png", path = NULL,
