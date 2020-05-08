@@ -421,6 +421,18 @@ number_of_all_complete_viral_loads = all_health_facility_vl %>% filter(complete_
 proportion_of_all_complete_vl = number_of_all_complete_viral_loads/total_number_vl_all_patients * 100
 #Calculate completeness for VL for new dataset of LH,QECH and ZCH
 
+#viral patients 
+
+tertiary_study_patients_test =  left_join(all_study_patients_selected,all_health_facility_vitals, by = "unique_patient_id") %>%  filter(encounter_datetime >= "2017-01-01") %>% group_by(unique_patient_id) %>% slice(1) 
+
+#tabulate the number of patients
+#gender
+#age groups
+#median
+#IQR
+
+
+
 number_of_tertiary_vl = new_viral_load_dataset %>% filter(bleeddate >= "2017-01-01") %>%  group_by(unique_patient_id) %>% slice(1) %>% nrow()
 
 tertiary_study_patients =  left_join(all_study_patients_selected,all_health_facility_vitals, by = "unique_patient_id") %>%  filter(encounter_datetime >= "2017-01-01") %>% group_by(unique_patient_id) %>% slice(1) %>% nrow()
@@ -592,10 +604,15 @@ health_center_addresses = all_health_facility_addresses %>% filter(health_facili
 district_addresses = all_health_facility_addresses %>% filter(health_facility_type == "District")
 tertiary_addresses = all_health_facility_addresses %>% filter(health_facility_type == "Tertiary")
 
-agebreaks <- c(15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,500)
-agelabels <- c("15-19","20-24","25-29","30-34",
-               "35-39","40-44","45-49","50-54","55-59","60-64","65-69",
-               "70-74","75-79","80-84","85+")
+#age group classification. Put in increments of 10
+#agebreaks <- c(15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,500)
+#agelabels <- c("15-19","20-24","25-29","30-34",
+#               "35-39","40-44","45-49","50-54","55-59","60-64","65-69",
+#               "70-74","75-79","80-84","85+")
+
+
+agebreaks <- c(15,25,35,45,55,500)
+agelabels <- c("15-24","25-34","35-44","45-54","55+")
 
 setDT(all_health_facility_addresses)[ , agegroups := cut(age, 
                                 breaks = agebreaks, 
@@ -606,6 +623,25 @@ setDT(all_health_facility_addresses)[ , agegroups := cut(age,
 
 all_study_patients_characteristics = table1(~gender + agegroups + age|health_facility_type, data = all_health_facility_addresses, output = "pandoc")
 
+
+setDT(tertiary_study_patients_test)[ , agegroups := cut(age.x, 
+                                breaks = agebreaks, 
+                                right = FALSE, 
+                                labels = agelabels)]
+
+viral_load_table_one = table1(~gender+agegroups+age.x|health_facility_name.x, data = tertiary_study_patients_test, output = "pandoc")
+
+
+#Calculate the Interquartile range which is a calculation of the difference between the upper quartile range and the lower quartile range
+hc_iqr_dt = all_health_facility_addresses %>% filter(health_facility_type == "Health Center")
+dh_iqr_dt = all_health_facility_addresses %>% filter(health_facility_type == "District")
+ch_iqr_dt = all_health_facility_addresses %>% filter(health_facility_type == "Tertiary")
+
+
+#Calculate the Interquartile range which is a calculation of the difference between the upper quartile range and the lower quartile range for viral load patients
+kch_iqr_dt = tertiary_study_patients_test %>% filter(health_facility_name.x == "KCH")
+qech_iqr_dt = tertiary_study_patients_test %>% filter(health_facility_name.x == "QECH")
+zch_iqr_dt = tertiary_study_patients_test %>% filter(health_facility_name.x == "ZCH")
 
 study_patients_at_health_centers = table1(~gender + age|health_facility_name, data = health_center_addresses, output = "html")
 
@@ -627,6 +663,11 @@ number_of_patient_visits_per_health_facility = table1(~health_facility_name, dat
 
   
 ```{r, plausibility, echo=FALSE, results='hide',include=FALSE}  
+
+# how to handle now ARVs? Compile a list of ARVs. Filter only those
+
+list_of_arv_drugs = c("Etravirine 100mg","d4T (Stavudine 40mg tablet","LPV/r (Lopinavir and Ritonavir syrup)" ,"d4T (Stavudine 30mg tablet)","Ritonavir 100mg","Dolutegravir (50mg tablet)","TDF300/3TC300 + LPV/r200/50","NVP (Nevirapine syrup 1mL/dose in 100mL bottle)","ABC (Abacavir 300mg tablet)","NVP (Nevirapine 50 mg tablet)","ATV/(Atazanavir)","LPV/r (Lopinavir and Ritonavir 100/25mg tablet)" , "AZT/3TC/TDF/LPV/r","AZT (Zidovudine 300mg tablet)","ABC/3TC (Abacavir and Lamivudine 60/30mg tablet)","LS30 (Stavudine and Lamivudine 30mg tablet)","LPV/r (Lopinavir and Ritonavir 200/50mg tablet)","d4T/3TC/EFV (Stavudine Lamvudine Efavirenz)","TDF (Tenofavir 300 mg tablet)","TDF300/3TC300/DTG50","EFV (Efavirenz 200mg tablet)","Coviro40 (Lamivudine + Stavudine 150/40mg tablet)","AZT/3TC (Zidovudine and Lamivudine 60/30 tablet)","Clotrimazole pessaries","TMP/SMX (Cotrimoxazole 240mg tablet)","TMP/SMX (Cotrimoxazole 800/160mg tablet)","TMP/SMX (Cotrimoxazole 200/40mg tablet)","AZT/3TC/NVP","Coviro30 (Lamivudine + Stavudine 150/30 mg tablet)","ABC/3TC (Abacavir and Lamivudine 600/300mg tablet)","AZT/3TC (Zidovudine and Lamivudine 300/150mg)","ATV/r (Atazanavir 300mg/Ritonavir 100mg)","EFV (Efavirenz 600mg tablet)","AZT/3TC/NVP (60/30/50mg tablet)","Cotrimoxazole (1920mg)","d4T/3TC (Stavudine Lamivudine 6/30mg tablet)","TMP/SMX (Cotrimoxazole 400/80mg tablet)","NVP (Nevirapine 200 mg tablet)","Triomune baby (d4T/3TC/NVP 6/30/50mg tablet)","TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet","Cotrimoxazole (480mg tablet)","Cotrimoxazole (960mg)","d4T/3TC (Stavudine Lamivudine 30/150 tablet)","TDF/3TC/EFV (300/300/600mg tablet)","AZT/3TC/NVP (300/150/200mg tablet)","d4T/3TC/NVP (30/150/200mg tablet)")                                 
+
   
   
 #Plausibility. Are the data that have been built believable? Are they accurate. We assess the complete data here.
@@ -697,7 +738,42 @@ number_of_all_plausible_addresses = all_health_facility_addresses %>%  filter(pl
 
 proportion_of_all_plausible_addresses = number_of_all_plausible_addresses / number_of_all_complete_addresses * 100
 
+#Temporal address plausibility
+
+# require to have the date that the patient started ARVs to compute that temporal plausibility. May take it from the dispensations. Join patient addresses and the patient addresses and select the first prescription day. take that as the first dispensation date.
+#get the first dispensed drugs. verify that it's ARVs only.
 #
+first_drugs = all_health_facility_drugs  %>% filter(name %in% list_of_arv_drugs) %>% group_by(name,start_date_new,unique_patient_id) %>% slice(1)
+
+addresses_with_first_art_date = left_join(all_health_facility_addresses,first_drugs, by="unique_patient_id") %>% group_by(unique_patient_id,visit_date) %>% slice(1)
+
+#calculate intervals between visit date and art_start_date. we want the visit date of address collection to be on the same date of starting ART or after. We do not want a date that is 7 days earlier than starting ART
+
+addresses_with_first_art_date$visit_date  = as.Date(addresses_with_first_art_date$visit_date, "%Y-%m-%d")
+
+addresses_with_first_art_date$time_days = interval(
+  addresses_with_first_art_date$visit_date,
+  addresses_with_first_art_date$start_date_new
+) / days(1)
+
+#Flag all addresses that were collected before the patient started taking ARVs
+
+addresses_with_first_art_date$temporal_address = ifelse(addresses_with_first_art_date$time_days < 0 ,"Not Plausible","Plausible")
+
+number_temporal_palusible_addresses = addresses_with_first_art_date %>% filter(temporal_address == "Plausible") %>% nrow()
+
+proportion_of_temporal_plausible_addresses = number_temporal_palusible_addresses /total_number_of_all_patients  * 100
+
+#
+
+#Unique address plausibility
+#flag all duplicate entries. So far returns none.
+all_health_facility_addresses %>% group_by(unique_patient_id,district,ta,village) %>% 
+  dplyr::mutate(duplicate_addresses = n()>1) 
+
+#Return all the unique entries
+unique_addresses = all_health_facility_addresses %>% select(unique_patient_id,district,ta,village) 
+duplicate_entries = unique_addresses[duplicated(unique_addresses),]
 
 #regular expression pattern for phone numbers. Filter those that are non numeric and are more than or less than 10 digits.
 
@@ -706,8 +782,26 @@ all_health_facility_addresses$plausible_phone_number = ifelse(str_length(all_hea
 #Atemporal plausibility - checking the range of possible values
 number_of_all_plausible_phone_numbers = all_health_facility_addresses %>% filter(plausible_phone_number == "Plausible") %>% nrow()
 
-
 proportion_of_all_plausible_numbers = number_of_all_plausible_phone_numbers / number_of_all_complete_phone_numbers * 100
+
+
+#Temporal plausibility will be all phone numbers registered before the ART start date. In this case the ART start date is the day of the first recorded ART dispensation for a patient at that clinic. We shall take all_patient_addresses and join with the prescriptions to check the first ART dispensation. will be the same as the physical address because they are collected at the same time.
+
+
+proportion_temporal_plausible_cellnumbers = proportion_of_temporal_plausible_addresses
+
+
+
+#Unique plausibility. Will screen to check if patient has more than 1 mobile phone number listed. Each patient should have 1 active phone number that they may be reached on. Same phone number assigned to multiple patients?? we can have the scenario of patients sharing phone numbers. But if a patient has more than 1 mobile number. That could point to a problem.
+
+# Flag all duplicate mobile numbers. Then count the duplicate numbers that will be flagged as True
+all_health_facility_addresses %>% group_by(unique_patient_id,cell_number) %>% 
+  dplyr::mutate(duplicate_mobiles = n()>1) 
+
+#Return only the duplicate numbers and later count them
+unique_mobiles = all_health_facility_addresses %>% select(unique_patient_id,cell_number) 
+duplicate_mobiles = unique_mobiles[duplicated(unique_mobiles),]
+
 
 
 # Plausible Weight Values. This will take into consideration all weight observations that were made during the study visit. Then check the weight values that fall within accepted thresholds.
@@ -809,6 +903,46 @@ number_of_plausible_weight_observations = study_period_vitals %>% filter(plausib
 
 proportion_all_plausible_weights = number_of_plausible_weight_observations/total_number_of_weight_visits * 100
 
+
+#Temporal plausibility
+#check weight values whose creation date is different from the visit date. Do we have weight taken before a patient started taking ARVs?
+
+study_period_temporal_vitals = left_join(study_period_vitals,first_drugs, by = "unique_patient_id") %>% 
+group_by(unique_patient_id,encounter_datetime)  %>% slice(1)
+
+study_period_temporal_vitals$encounter_datetime = as.Date(study_period_temporal_vitals$encounter_datetime, "%Y-%m-%d")
+#flag any vitals observations made before the patient ART start date. 
+
+study_period_temporal_vitals$time_days = interval(
+  study_period_temporal_vitals$start_date_new,
+  study_period_temporal_vitals$encounter_datetime
+) / days(1)
+
+study_period_temporal_vitals = study_period_temporal_vitals %>% filter(weight_new >0)
+study_period_temporal_vitals$temporal_weight = ifelse((study_period_temporal_vitals$time_days < 0), "Not plausible","Plausible")
+study_period_temporal_vitals = study_period_temporal_vitals %>% filter(height_new >0)
+study_period_temporal_vitals$temporal_height = ifelse((study_period_temporal_vitals$time_days < 0), "Not plausible","Plausible")
+# 
+
+number_temporal_plausibility_weight = study_period_temporal_vitals %>%  filter(temporal_weight == "Not plausible") %>% nrow()
+number_temporal_plausibility_height = study_period_temporal_vitals %>%  filter(temporal_height == "Not plausible") %>% nrow()
+
+proportion_temporal_weght  = number_temporal_plausibility_weight / total_number_of_weight_visits * 100
+
+
+
+
+#unique plausibility. check patients that have more than one weight observation on the same date.
+#unique_weight_visits = study_period_vitals %>% 
+#flag all duplicate weight observations
+
+unique_weights = study_period_vitals %>% select(unique_patient_id,encounter_datetime,weight_new) %>% group_by(unique_patient_id,encounter_datetime,weight_new) %>% 
+  dplyr::mutate(duplicate_weights = n()>1)
+number_of_patients_with_unique_weights = unique_weights %>% filter(duplicate_weights == FALSE) %>% nrow()
+
+proportion_all_unique_plausible_weights = number_of_patients_with_unique_weights / total_number_of_weight_visits * 100
+
+
 # Plausible Height Values. Get all the plausible height observations. Group by unique patient and then count only those with plausible heights.
 
 patients_with_heights = mutate(patients_with_heights, study_age_in_months = patients_with_heights$age.x*12)  
@@ -853,6 +987,16 @@ number_of_all_plausible_height_observations = patients_with_heights %>% filter(p
 
 proportion_all_plausible_heights = number_of_all_plausible_height_observations/total_number_of_height_visits * 100
 
+# unique height plausibility
+
+unique_heights = study_period_vitals %>% select(unique_patient_id,encounter_datetime,height_new) %>% group_by(unique_patient_id,encounter_datetime,height_new) %>% dplyr::mutate(duplicate_heights = n()>1)
+number_of_all_plausible_unique_height_observations = unique_heights %>% filter(duplicate_heights == FALSE) %>% nrow()
+
+# Temporal height proportions
+
+proportion_temporal_height = number_temporal_plausibility_height / total_number_of_height_visits * 100
+
+# 
 
 #Plausible Drugs
 #Check if the prescribed drug == the dispensed drug
@@ -860,9 +1004,7 @@ proportion_all_plausible_heights = number_of_all_plausible_height_observations/t
 #Prescription observations
 all_health_facility_drugs$quantity = as.numeric(all_health_facility_drugs$quantity)
 all_health_facility_drugs$regimen_category = as.factor(all_health_facility_drugs$regimen_category)
-# how to handle now ARVs? Compile a list of ARVs. Filter only those
-
-list_of_arv_drugs = c("Etravirine 100mg","d4T (Stavudine 40mg tablet","LPV/r (Lopinavir and Ritonavir syrup)" ,"d4T (Stavudine 30mg tablet)","Ritonavir 100mg","Dolutegravir (50mg tablet)","TDF300/3TC300 + LPV/r200/50","NVP (Nevirapine syrup 1mL/dose in 100mL bottle)","ABC (Abacavir 300mg tablet)","NVP (Nevirapine 50 mg tablet)","ATV/(Atazanavir)","LPV/r (Lopinavir and Ritonavir 100/25mg tablet)" , "AZT/3TC/TDF/LPV/r","AZT (Zidovudine 300mg tablet)","ABC/3TC (Abacavir and Lamivudine 60/30mg tablet)","LS30 (Stavudine and Lamivudine 30mg tablet)","LPV/r (Lopinavir and Ritonavir 200/50mg tablet)","d4T/3TC/EFV (Stavudine Lamvudine Efavirenz)","TDF (Tenofavir 300 mg tablet)","TDF300/3TC300/DTG50","EFV (Efavirenz 200mg tablet)","Coviro40 (Lamivudine + Stavudine 150/40mg tablet)","AZT/3TC (Zidovudine and Lamivudine 60/30 tablet)","Clotrimazole pessaries","TMP/SMX (Cotrimoxazole 240mg tablet)","TMP/SMX (Cotrimoxazole 800/160mg tablet)","TMP/SMX (Cotrimoxazole 200/40mg tablet)","AZT/3TC/NVP","Coviro30 (Lamivudine + Stavudine 150/30 mg tablet)","ABC/3TC (Abacavir and Lamivudine 600/300mg tablet)","AZT/3TC (Zidovudine and Lamivudine 300/150mg)","ATV/r (Atazanavir 300mg/Ritonavir 100mg)","EFV (Efavirenz 600mg tablet)","AZT/3TC/NVP (60/30/50mg tablet)","Cotrimoxazole (1920mg)","d4T/3TC (Stavudine Lamivudine 6/30mg tablet)","TMP/SMX (Cotrimoxazole 400/80mg tablet)","NVP (Nevirapine 200 mg tablet)","Triomune baby (d4T/3TC/NVP 6/30/50mg tablet)","TDF/3TC (Tenofavir and Lamivudine 300/300mg tablet","Cotrimoxazole (480mg tablet)","Cotrimoxazole (960mg)","d4T/3TC (Stavudine Lamivudine 30/150 tablet)","TDF/3TC/EFV (300/300/600mg tablet)","AZT/3TC/NVP (300/150/200mg tablet)","d4T/3TC/NVP (30/150/200mg tablet)")                                                                                                                                                  
+                                                                                                                 
 #Atemporal plausibility searching for arv dispensations within expected quantities of an average of 3 month dispensations
 
 arv_prescription_observations = prescription_encounter_observations %>% filter(name %in% list_of_arv_drugs) %>% group_by(name,start_date,unique_patient_id) %>% slice(1)
@@ -879,6 +1021,13 @@ number_of_all_plausible_prescriptions = arv_prescription_observations %>% filter
 
 
 all_prescription_plausibility_proportion = number_of_all_plausible_prescriptions / number_of_arv_prescription_observations  *100
+#Unique plausibility for prescription
+#every patient should have one and only one prescription of the same drug on the same day in line with the dosage and quantity of the ingredients
+unique_prescriptions = arv_prescription_observations %>% select(unique_patient_id,start_date_new,name,quantity) %>% group_by(unique_patient_id,start_date_new,name) %>% dplyr::mutate(duplicate_prescriptions = n()>1)
+number_of_unique_prescriptions = unique_prescriptions %>% filter(duplicate_prescriptions == FALSE) %>% nrow()
+
+
+#Temporal prescripions
 
 
 #Plausible Adherence should (Atemporal plausibility checking the range of possible plausibility)
@@ -895,6 +1044,21 @@ number_of_all_patients_with_plausible_adherence = all_patients_with_plausible_ad
 number_of_all_patients_with_adherence_observations = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>% nrow()
   
 proportion_all_plausible_adherence = number_of_all_patients_with_plausible_adherence / number_of_all_patients_with_adherence_observations * 100
+#Temporal adherence plausibility
+
+#
+
+#unique adherence plausibility
+#count patients with one and only one adherence observation for a particular drug on a particular day
+
+unique_adherence_counts = all_health_facility_adherence %>% filter(start_date_new >= "2017-01-01") %>%  select(unique_patient_id,start_date_new,ARV_regimen_name) %>% group_by(unique_patient_id,start_date_new,ARV_regimen_name) %>% dplyr::mutate(duplicate_heights = n()>1)
+number_of_unique_adherence = unique_adherence_counts %>% filter(duplicate_heights == FALSE) %>% nrow()
+
+
+
+#
+
+
 
 #Plausible Viral load
 #identify patients with more than two viral load
@@ -1100,6 +1264,19 @@ fhgtsd   <- sd(na.omit(study_period_vitals$height_new))
 
 kable(all_study_patients_characteristics, caption = "Table 1: Gender and Age by Health Facility Types of All Study Records", col.names = NA)
 
+kable(viral_load_table_one, caption = "Table 1: Gender and Age by Health Facility Name of all Viral Load Records", col.names = NA)
+
+#Put the Interquartile Range for Age for different health facility types
+
+IQR(ch_iqr_dt$age)
+IQR(hc_iqr_dt$age)
+IQR(dh_iqr_dt$age)
+IQR(tertiary_study_patients_test$age.x)
+IQR(kch_iqr_dt$age.x)
+IQR(qech_iqr_dt$age.x)
+IQR(zch_iqr_dt$age.x)
+
+
 kable(study_patients_at_health_centers, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records at Health Centers", col.names = NA)
 
 kable(study_patients_at_district_hospitals, caption = "Table 1: Gender and Age by Health Facility Names of All Study Records at District Hospitals", col.names = NA)
@@ -1168,6 +1345,16 @@ ggsave("~/Dropbox/dissertation_data_analysis/addresscompleteness4.png", plot = l
   scale = 1, width = NA, height = NA, units = c("in", "cm", "mm"),
   dpi = 300, limitsize = TRUE)
 
+new_cd<- ddply(new_cd, .(address_section),
+                     transform, pos = cumsum(percentage) - (0.5 * percentage))
+
+p4 <- ggplot() + geom_bar(aes(y = percentage, x = address_section, fill = address_value), data = new_cd,
+                           stat="identity") +
+  geom_text(data=new_cd, aes(x = address_section, y = pos,
+                                  label = paste0(percentage,"%")), size=4) +
+  theme(legend.position="bottom", legend.direction="horizontal", legend.title = element_blank()) +
+facet_grid(.~health_facility_type) 
+p4
 
 #+ geom_hline(yintercept = total_number_of_all_patients, color = "yellow", size = 2 )
 
